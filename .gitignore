@@ -1,0 +1,68 @@
+# ===========================
+# 敏感文件(绝不入库)
+# ===========================
+.env
+.env.*
+*.key
+*.pem
+*.crt
+secrets/
+
+# 配置/凭证(可能含 API token)
+openclaw.json
+openclaw.json.bak*
+exec-approvals.json
+update-check.json
+
+# Claude Code / Codex / Cursor 个人级配置
+.claude/
+.codex/
+.cursor/
+
+# ===========================
+# 其他子项目(各有独立用途,本 repo 不管理)
+# ===========================
+agents/
+canvas/
+cron/
+delivery-queue/
+devices/
+douyin/
+extensions-npm/
+feishu/
+flows/
+identity/
+logs/
+media/
+memory/
+ml/
+qqbot/
+skills/
+tasks/
+workspace/
+
+# 注意:tdx/ 是 git submodule,不在这里 ignore
+
+# ===========================
+# CLAUDE.md 历史快照副本(只保留主 CLAUDE.md 即可)
+# ===========================
+CLAUDE_副本.md
+CLAUDE_2.20.md
+CLAUDE_v1_20260426.md
+
+# ===========================
+# macOS / 系统元数据
+# ===========================
+.DS_Store
+._*
+.Trashes
+.fseventsd
+.Spotlight-V100
+
+# ===========================
+# IDE / 编辑器
+# ===========================
+.vscode/
+.idea/
+*.swp
+*.swo
