@@ -1637,3 +1637,46 @@ git push
 5. 与远程冲突 → `git pull --rebase`,有冲突时停下问用户,不要自动覆盖。
 6. **禁止 force push**,有需要必须先告知用户。
 7. initial commit / 大改 push 之前必须 `git check-ignore -v <file>` 验证 .gitignore 没被全局规则屏蔽(参见 memory: feedback_global_gitignore_pitfall.md)。
+
+---
+
+## 35. 纯缠论波段(独立模块,2026-05-05)
+
+### 35.0 模块边界
+
+本模块**不引用 §4 裁决链**,自成纪律。
+共享:`history.db` / `stock_industry`(数据基础设施)。
+适用场景:用户明确说"按缠论波段做"或"看 chanlun_swing 候选"。
+**默认场景仍是 §1-§32 CANSLIM 主流程**。
+
+### 35.1 三条最小风控(必过)
+
+1. 大盘 M ≠ BEAR(BEAR 直接清空候选,扫描不开仓)
+2. -8% 硬止损(止损距离 > 8% 直接过滤)
+3. 赔率 ≥ 2:1(T1 / 止损距离 < 2 直接过滤)
+
+### 35.2 入场信号
+
+- 周线 2B / 3B(必须)
+- 日线触发:站上 ma50 + 量比 ≥ 1.5
+- 1B 不入场(左侧抄底,纳入观察池)
+
+### 35.3 退出信号
+
+- 周线 1S → 减仓
+- 周线 2S → 清仓
+- -8% 硬止损 → 不解释先卖
+
+### 35.4 仓位
+
+- 默认单仓 5-8%(参考 §11 A1 标准 early)
+- 总仓位上限 50%(波段不重仓,不超过 §11 medium 档)
+- DISTRIBUTION_HEAVY 时降一档
+
+### 35.5 工具
+
+- `tdx/chanlun_swing_scan.py` 自动扫描全市场
+- 输出 `tdx/logs/chanlun_swing_YYYYMMDD.{json,md}`
+- launchd `com.openclaw.chanlun-swing` 工作日 15:40 自动跑
+- 设计文档:`tdx/docs/superpowers/specs/2026-05-05-chanlun-swing-design.md`
+- 实施计划:`tdx/docs/superpowers/plans/2026-05-05-chanlun-swing-implementation.md`
