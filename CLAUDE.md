@@ -1571,6 +1571,7 @@ CANSLIM:
 | feedback_position_class_abc.md | A/B/C 三类位置定义不能混淆(对应 §7.1) |
 | feedback_monthly_filter_only.md | A 类 early 月线只做否决器(对应 §12.3) |
 | feedback_early_essence_weekly.md | early 本体在周线 + A0/A1 分档 v4 终稿(对应 §12) |
+| feedback_global_gitignore_pitfall.md | ~/.gitignore_global 含 ".gitignore" 异常规则会屏蔽项目级 .gitignore(对应 §34.3.7) |
 
 ### 33.3 工具链(workspace/tools/)
 
