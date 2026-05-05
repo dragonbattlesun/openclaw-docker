@@ -1,0 +1,126 @@
+services:
+  openclaw-gateway:
+    image: ${OPENCLAW_IMAGE:-openclaw:local-docker}
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      OPENCLAW_ALLOW_INSECURE_PRIVATE_WS: ${OPENCLAW_ALLOW_INSECURE_PRIVATE_WS:-}
+      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY:-}
+      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY:-}
+      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE:-}
+      ANTHROPIC_AUTH_TOKEN: ${ANTHROPIC_AUTH_TOKEN:-}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
+      - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
+      ## Uncomment the lines below to enable sandbox isolation
+      ## (agents.defaults.sandbox). Requires Docker CLI in the image
+      ## (build with --build-arg OPENCLAW_INSTALL_DOCKER_CLI=1) or use
+      ## docker-setup.sh with OPENCLAW_SANDBOX=1 for automated setup.
+      ## Set DOCKER_GID to the host's docker group GID (run: stat -c '%g' /var/run/docker.sock).
+      # - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock
+    user: "root"
+    ports:
+      - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
+      - "${OPENCLAW_BRIDGE_PORT:-18790}:18790"
+    init: true
+    restart: unless-stopped
+    command:
+      [
+        "node",
+        "dist/index.js",
+        "gateway",
+        "--bind",
+        "${OPENCLAW_GATEWAY_BIND:-lan}",
+        "--port",
+        "18789",
+      ]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:18789/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  openclaw-cli:
+    image: ${OPENCLAW_IMAGE:-openclaw:local}
+    network_mode: "service:openclaw-gateway"
+    cap_drop:
+      - NET_RAW
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      OPENCLAW_ALLOW_INSECURE_PRIVATE_WS: ${OPENCLAW_ALLOW_INSECURE_PRIVATE_WS:-}
+      BROWSER: echo
+      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY:-}
+      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY:-}
+      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE:-}
+      ANTHROPIC_AUTH_TOKEN: ${ANTHROPIC_AUTH_TOKEN:-}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
+      - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
+    stdin_open: true
+    tty: true
+    init: true
+    entrypoint: ["node", "dist/index.js"]
+    depends_on:
+      - openclaw-gateway
+  tdx-api:
+    image: tdx:local
+    command: ["python3", "api.py"]
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR}/tdx:/app
+      - ${OPENCLAW_CONFIG_DIR}/tdx/signals:/app/signals
+    ports:
+      - "18800:8080"
+    restart: unless-stopped
+
+  tdx-scheduler:
+    image: tdx:local
+    command: ["python3", "scheduler.py"]
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR}/tdx:/app
+      - ${OPENCLAW_CONFIG_DIR}/tdx/signals:/app/signals
+    restart: unless-stopped
+
+  kline-dashboard:
+    image: tdx:local
+    command: ["python3", "kline_dashboard.py"]
+    environment:
+      TDX_API_URL: http://tdx-api:8080
+      WATCHLIST_FILE: /watchlist/watchlist.json
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR}/tdx:/app
+      - ${OPENCLAW_WORKSPACE_DIR}:/watchlist
+    ports:
+      - "${KLINE_DASHBOARD_PORT:-18801}:8050"
+    depends_on:
+      - tdx-api
+    restart: unless-stopped
+
+  ml-stock:
+    image: ml-stock:local
+    command: ["python", "scheduler.py"]
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR}/ml:/app
+    restart: unless-stopped
+
+  douyin-api:
+    image: evil0ctal/douyin_tiktok_download_api:latest
+    network_mode: "service:openclaw-gateway"
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR}/douyin:/app/config
+    restart: unless-stopped
