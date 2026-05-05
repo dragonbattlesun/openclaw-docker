@@ -1588,32 +1588,51 @@ CANSLIM:
 
 ## 34. 代码工作流(2026-05-05)
 
-### 34.1 tdx/ 子项目 git 远程
+### 34.1 双 repo 结构
 
-- 仓库:`git@github.com:dragonbattlesun/tdx.git`,branch `main`,upstream 已设
-- 路径:`/Volumes/T7/Docker/openclaw-docker/tdx/`(独立 git repo,与父目录 .git 隔离)
+| repo | 路径 | 远程 | 范围 |
+|------|------|------|------|
+| 父 repo | `/Volumes/T7/Docker/openclaw-docker/` | `git@github.com:dragonbattlesun/openclaw-docker.git` | CLAUDE.md / docker-compose.yml / Dockerfile.local / start.sh / .gitignore |
+| tdx submodule | `/Volumes/T7/Docker/openclaw-docker/tdx/` | `git@github.com:dragonbattlesun/tdx.git` | TDX 量化分析框架(python 代码 + launchd plist) |
+
+两者都在 `main` 分支,upstream 已设。父 repo 通过 `.gitmodules` 把 tdx 注册为 submodule,父 repo 记录的是 tdx 的 commit hash 指针。
+
+clone 方式:`git clone --recurse-submodules git@github.com:dragonbattlesun/openclaw-docker.git`。
 
 ### 34.2 自动提交规则(常驻授权,Standing Authorization)
 
-每次对 `tdx/` 下任何文件的修改完成且本地验证通过后,**立即** commit + push,不需要再次确认:
+每次修改完成且本地验证通过后,**立即** commit + push,不需要再次确认:
+
+#### 改的是父 repo 文件(CLAUDE.md / docker-compose.yml / .gitignore 等)
+
+```bash
+cd /Volumes/T7/Docker/openclaw-docker
+git add <files>
+git commit -m "<why>"
+git push
+```
+
+#### 改的是 tdx/ 下的文件
 
 ```bash
 cd /Volumes/T7/Docker/openclaw-docker/tdx
 git add <files>
-git commit -m "<改了什么 + 为什么,中英文均可>"
+git commit -m "<why>"
+git push
+
+# 必须回父 repo bump submodule 指针,否则父 repo 的 tdx 还指向旧 hash
+cd /Volumes/T7/Docker/openclaw-docker
+git add tdx
+git commit -m "bump tdx submodule → <new hash 前 7 位> <one-line 描述>"
 git push
 ```
 
-要求:
+### 34.3 通用要求
 
-1. commit message 简洁说明动机(why),而不是只说改了什么(what)。
+1. commit message 简洁说明动机(why),不是只说改了什么(what)。
 2. 一组逻辑相关的修改打成一个 commit,不要碎片化。
-3. 本地未跑通(语法错误 / 烟测失败)时,**先修通过再 commit**。
+3. 本地未跑通(语法错误 / 烟测失败)→ **先修通过再 commit**。
 4. 涉及密钥 / 凭证 / 私有数据 → **先回滚再 commit**,绝不入库。
-5. 与远程冲突 → 先 `git pull --rebase`,有冲突时停下问用户,不要自动覆盖。
+5. 与远程冲突 → `git pull --rebase`,有冲突时停下问用户,不要自动覆盖。
 6. **禁止 force push**,有需要必须先告知用户。
-
-### 34.3 父 repo
-
-`/Volumes/T7/Docker/openclaw-docker/.git` 是 fresh init 状态(0 commits),**未启用,不动**。
-tdx/ 之外的改动暂不入版本控制,除非用户明确启动父 repo。
+7. initial commit / 大改 push 之前必须 `git check-ignore -v <file>` 验证 .gitignore 没被全局规则屏蔽(参见 memory: feedback_global_gitignore_pitfall.md)。
