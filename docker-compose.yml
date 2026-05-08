@@ -84,6 +84,8 @@ services:
     volumes:
       - ${OPENCLAW_CONFIG_DIR}/tdx:/app
       - ${OPENCLAW_CONFIG_DIR}/tdx/signals:/app/signals
+      # history.db 永久放 APFS (T7 ExFAT 不支持 SQLite 大事务,会损坏)
+      - ${TDX_HISTORY_DB:-/Users/dragonbattlesun/db_workspace/history.db}:/app/history.db
     ports:
       - "18800:8080"
     restart: unless-stopped
@@ -94,6 +96,7 @@ services:
     volumes:
       - ${OPENCLAW_CONFIG_DIR}/tdx:/app
       - ${OPENCLAW_CONFIG_DIR}/tdx/signals:/app/signals
+      - ${TDX_HISTORY_DB:-/Users/dragonbattlesun/db_workspace/history.db}:/app/history.db
     restart: unless-stopped
 
   kline-dashboard:
@@ -105,6 +108,7 @@ services:
     volumes:
       - ${OPENCLAW_CONFIG_DIR}/tdx:/app
       - ${OPENCLAW_WORKSPACE_DIR}:/watchlist
+      - ${TDX_HISTORY_DB:-/Users/dragonbattlesun/db_workspace/history.db}:/app/history.db
     ports:
       - "${KLINE_DASHBOARD_PORT:-18801}:8050"
     depends_on:
