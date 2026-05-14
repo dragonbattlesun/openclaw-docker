@@ -34,7 +34,8 @@ flows/
 identity/
 logs/
 media/
-memory/
+memory/*
+!memory/reference_chanlun_recursive_buy_sell_framework.md
 ml/
 qqbot/
 skills/

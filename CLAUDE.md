@@ -1550,6 +1550,7 @@ CANSLIM:
 | 文件 | 引用位置 | 用途 |
 |---|---|---|
 | reference_chanlun_terminology.md | §16.2.5 | 缠论 12 类核心名词 + 实战翻译表 + 5 句心法完整版 |
+| reference_chanlun_recursive_buy_sell_framework.md | §35.6 | 缠论递归买卖点 + 六类走势归档 + 固定操作级别 |
 | reference_chart_patterns.md | §20 | 30+ 经典 K 线形态完整列表 |
 | reference_canslim_perf.md | §7 | CANSLIM 性能数据参考 |
 | reference_tdxapi_defaults.md | §23.2 | TDX API 默认参数对照表 |
@@ -1680,3 +1681,15 @@ git push
 - launchd `com.openclaw.chanlun-swing` 工作日 15:40 自动跑
 - 设计文档:`tdx/docs/superpowers/specs/2026-05-05-chanlun-swing-design.md`
 - 实施计划:`tdx/docs/superpowers/plans/2026-05-05-chanlun-swing-implementation.md`
+
+### 35.6 递归买卖点与走势归档记忆(2026-05-14)
+
+完整口径见 `memory/reference_chanlun_recursive_buy_sell_framework.md`。用户明确要求后续缠论个股分析采用该框架:
+
+1. 先声明操作级别。默认短线/波段用 30 分钟为操作级别、日线为观察级别、5 分钟或 30 分钟内部为进场级别；中线用日线为操作级别、周线为观察级别、30 分钟为进场级别。
+2. 先归入六类走势之一,再判断 1B/2B/3B/1S/2S/3S,不能只报单一日线或分钟信号。
+3. 标准一买按“本级别一买 = 次级别三卖 + 次次级别一买”检查；盘整背驰一买、无 c 段一买、小转大一买必须单独标注为非标准结构。
+4. 中枢升级区分延伸、扩展、扩张:3-8 段延伸不升级,9 段及以上扩展升级;两个同级别中枢波动区间重叠则扩张升级。
+5. 小转大必须说明触发它的小级别、被突破的大级别中枢边界、以及失效条件。
+6. 走势终完美必须做“形态完美 + 能量确认”双检查:本级别中枢/背驰/三买三卖为形态条件,成交量/资金流向/情绪或板块共振为能量条件。
+7. 用户有持仓成本时,只围绕同一操作级别给止损、减仓、加仓条件,不能临时切换级别安慰持仓。
