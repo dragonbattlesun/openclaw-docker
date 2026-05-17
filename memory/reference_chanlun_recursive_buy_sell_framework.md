@@ -168,6 +168,14 @@
 - 机构参与度低，基本面极差或有退市风险。
 - 策略：缠论前提是充分流动性，此类标的不做标准缠论分析。
 
+统一封装调用：
+
+- 代码入口：`tdx/chanlun_swing/six_pattern.py`。
+- 底层纯函数：`classify_six_pattern_from_context(...)`，接收已算好的 CZSC/缠论快照、周线结构、日线健康度、30m/60m 快照和流动性信息。
+- 上层函数：`classify_six_pattern(daily_rows, ...)`，负责调用 `get_chanlun_snapshot`、`weekly_structure`、`daily_health` 并返回统一归档结果。
+- 单票入口：`tdx/chanlun_swing/decision_single.py` 输出标准字段 `six_pattern`，后续脚本不要重复手写六类判断。
+- 第一类必须有日线 3B 证据；30m/60m 小级别右侧确认只能作为辅助证据，不能替代日线三买。
+
 ## 量化时代修正
 
 这些修正作为风险过滤项，不当作绝对定律：
