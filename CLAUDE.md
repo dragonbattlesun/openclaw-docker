@@ -1127,6 +1127,58 @@ python3 /Volumes/T7/Docker/openclaw-docker/workspace/tools/save_analysis.py /tmp
 
 若 `save_analysis.py` 不存在,不影响当前回答,但必须输出可复制的 Markdown 分析正文。
 
+### 23.5 板块判断快照记录(每次板块 RPS 排名后必做)
+
+**只要输出了申万一级板块 RPS 排名 / 板块强弱判断,必须落库**,用于判断回归:
+
+```bash
+python3 /Volumes/T7/Docker/openclaw-docker/workspace/tools/save_sector_verdicts.py <YYYY-MM-DD> [--market-state <M>]
+```
+
+- 写入 `stock_analyses.duckdb` 的 `sector_verdicts` 表(31 行业 × label,同日重跑覆盖)
+- label 自动按 §7.2 规则:长牛主线 / 底部启动 / type4失速 / 退潮 / 主跌 / 中性
+- **回归**:等 N 日后 sw_rps 出来,join 校验「我标的 label 后续是否兑现」:
+  ```sql
+  ATTACH '/Volumes/T7/Docker/openclaw-docker/tdx/rps.db' AS r;
+  SELECT sv.sw_name, sv.label, sv.rps20 d0, f.rps dN, (f.rps-sv.rps20) delta
+  FROM sector_verdicts sv
+  JOIN r.sw_rps f ON f.code=sv.sw_code AND f.period=20 AND f.date='<未来日>'
+  WHERE sv.snapshot_date='<快照日>' AND sv.label='底部启动';
+  -- 底部启动/长牛主线 delta>0 = 对;type4失速/主跌 delta<0 = 对
+  ```
+
+### 23.6 低位启动扫描记录(每次全市场扫描后必做)
+
+**只要跑了 `chanlun_low_start_v04_1.py` 全市场扫描,必须批量入库**:
+
+```bash
+python3 /Volumes/T7/Docker/openclaw-docker/workspace/tools/ingest_lowstart.py --latest
+```
+
+- 把 structure_candidates(trade + watchlist)批量写入 `stock_analyses`,
+  `verdict=watchlist`、`session_id=lowstart_<date>`(同日重跑覆盖)
+- tier:可入场(risk_passed)/ 观察池;falsify 信号 = risk_tags
+- **回归**:`trigger_outcomes` 事后回填触发结果,`query_analysis.py win-rate` 按 tier 统计胜率
+
+### 23.7 收盘一键记录 + 自动化
+
+手动一键(§23.5 + §23.6 合并,前置缺失自带跳过):
+
+```bash
+python3 /Volumes/T7/Docker/openclaw-docker/workspace/tools/record_eod.py [YYYY-MM-DD] [--market-state M]
+# 省略日期 = history.db 最近交易日
+```
+
+**自动化(Docker 恢复后启用)**:`record_eod.py` 依赖前置同日就绪——
+sw_rps(scheduler 算)+ chanlun_low_start scan json。最佳挂载点是
+**Docker 恢复后挂进 scheduler.py 收盘任务链**(与 K线/RPS/扫描同容器,
+数据链不割裂);或宿主 launchd 工作日 16:20(留足前置时间)跑
+`/Volumes/T7/Docker/openclaw-docker/tdx/.venv/bin/python
+workspace/tools/record_eod.py`。当前 Docker down + 链未端到端验证,
+**暂不 bootstrap launchd**,以 §23.5/23.6 规则手动遵守为准。
+
+一句话:**单票分析双写(§23.4)+ 板块排名落 sector_verdicts(§23.5)+ 低位启动扫描批量入库(§23.6),三类齐全才算"做了记录";收盘用 record_eod.py 一键补全(§23.7)。**
+
 ---
 
 ## 24. 禁止事项
@@ -1578,9 +1630,11 @@ CANSLIM:
 
 | 工具 | 用途 |
 |---|---|
-| save_analysis.py | 双写分析结果到 DB + .md(§23.4) |
+| save_analysis.py | 单票分析双写到 DB + .md(§23.4) |
 | query_analysis.py | 7 个常用查询封装(§23.4) |
-| schema.sql | DuckDB schema 定义(40+ 字段) |
+| save_sector_verdicts.py | 板块判断快照入库 sector_verdicts(§23.5) |
+| ingest_lowstart.py | 低位启动扫描 json 批量入库(§23.6) |
+| schema.sql | DuckDB schema 定义(stock_analyses 40+ 字段 + sector_verdicts) |
 
 ### 33.4 备份文件
 
