@@ -1119,7 +1119,7 @@ python3 /Volumes/T7/Docker/openclaw-docker/workspace/tools/save_analysis.py /tmp
 - `python3 query_analysis.py latest` 所有票最新一次分析
 - `python3 query_analysis.py latest --watchlist` 仅 watchlist
 - `python3 query_analysis.py active` 当前 active 未触发的 watchlist
-- `python3 query_analysis.py win-rate` 按 tier 分组的触发胜率
+- `python3 query_analysis.py payoff` 按 tier 分组的触发后收益/回撤分布
 - `python3 query_analysis.py mistakes` 错判检测
 - `python3 query_analysis.py sql "SELECT ..."` 任意 SQL
 
@@ -1158,7 +1158,7 @@ python3 /Volumes/T7/Docker/openclaw-docker/workspace/tools/ingest_lowstart.py --
 - 把 structure_candidates(trade + watchlist)批量写入 `stock_analyses`,
   `verdict=watchlist`、`session_id=lowstart_<date>`(同日重跑覆盖)
 - tier:可入场(risk_passed)/ 观察池;falsify 信号 = risk_tags
-- **回归**:`trigger_outcomes` 事后回填触发结果,`query_analysis.py win-rate` 按 tier 统计胜率
+- **回归**:`trigger_outcomes` 事后回填触发结果,`query_analysis.py payoff` 按 tier 统计收益/回撤分布
 
 ### 23.7 收盘一键记录 + 自动化
 
@@ -1742,10 +1742,10 @@ git push
 
 1. 先声明操作级别。默认短线/波段用 30 分钟为操作级别、日线为观察级别、5 分钟或 30 分钟内部为进场级别；中线用日线为操作级别、周线为观察级别、30 分钟为进场级别。
 2. 先归入六类走势之一,再判断 1B/2B/3B/1S/2S/3S,不能只报单一日线或分钟信号。
-3. 标准一买按“本级别一买 = 次级别三卖 + 次次级别一买”检查；盘整背驰一买、无 c 段一买、小转大一买必须单独标注为非标准结构。
-4. 中枢升级区分延伸、扩展、扩张:3-8 段延伸不升级,9 段及以上扩展升级;两个同级别中枢波动区间重叠则扩张升级。
-5. 小转大必须说明触发它的小级别、被突破的大级别中枢边界、以及失效条件。
-6. 走势终完美必须做“形态完美 + 能量确认”双检查:本级别中枢/背驰/三买三卖为形态条件,成交量/资金流向/情绪或板块共振为能量条件。
+3. 标准一买通常发生在本级别下跌趋势最后一个中枢被次级别向下离开后,通过更小级别背驰和一买精确定位；次级别三卖是结构背景,不是充分等号。
+4. 中枢升级优先看两个同级别中枢波动区间是否重叠；9 段只作为中枢延伸复杂化后的可重组提示,严格仍要能递归生成更高级别中枢。
+5. 小转大必须说明触发它的小级别、被突破的大级别中枢边界、以及失效条件；小级别三买/三卖只是必要条件之一,不是充分条件。
+6. 走势终完美先看形态结构；成交量/资金流向/情绪或板块共振是实战过滤和仓位依据,不是原文买卖点定义。
 7. 时间周期只做辅助验证,不能替代形态和能量；量化时代小级别假背驰/假买卖点更多,优先二买/二卖,一买/一卖只小仓试错。
 8. 走势类型转换必须看三信号:本级别背驰、次级别反向走势类型完成、反向第一买卖点出现；单一背驰只算候选。
 9. 结合律用于选择最利于当前操作级别的分解方式,不追求唯一画法；盘整突破/跌破必须用量能、资金、板块和 M 过滤真假。
