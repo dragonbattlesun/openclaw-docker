@@ -36,6 +36,7 @@ logs/
 media/
 memory/*
 !memory/reference_chanlun_recursive_buy_sell_framework.md
+!memory/reference_tdx_native_runtime.md
 ml/
 qqbot/
 skills/

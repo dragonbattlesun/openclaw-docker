@@ -1169,13 +1169,26 @@ python3 /Volumes/T7/Docker/openclaw-docker/workspace/tools/record_eod.py [YYYY-M
 # 省略日期 = history.db 最近交易日
 ```
 
-**自动化(Docker 恢复后启用)**:`record_eod.py` 依赖前置同日就绪——
-sw_rps(scheduler 算)+ chanlun_low_start scan json。最佳挂载点是
-**Docker 恢复后挂进 scheduler.py 收盘任务链**(与 K线/RPS/扫描同容器,
-数据链不割裂);或宿主 launchd 工作日 16:20(留足前置时间)跑
-`/Volumes/T7/Docker/openclaw-docker/tdx/.venv/bin/python
-workspace/tools/record_eod.py`。当前 Docker down + 链未端到端验证,
-**暂不 bootstrap launchd**,以 §23.5/23.6 规则手动遵守为准。
+**自动化(原生 launchd,不用 Docker)**:`record_eod.py` 依赖前置同日就绪——
+sw_rps(`com.openclaw.sector-rps` 16:20 原生生成)+
+chanlun_low_start scan json(`com.openclaw.chanlun-low-start` 15:45 原生生成)。
+当前标准收盘链路:
+
+| 时间 | launchd | 原生命令 |
+|------|---------|----------|
+| 15:30 | `com.openclaw.tdx-sync` | `tdx/.venv/bin/python -u tdx/sync_tdx_meta.py` |
+| 15:45 | `com.openclaw.chanlun-low-start` | `tdx/.venv/bin/python tdx/run_v042_pipeline.py` |
+| 16:20 | `com.openclaw.sector-rps` | `tdx/.venv/bin/python tdx/scripts/run_sector_rps_daily.py --db tdx/rps.db --history-db tdx/history.db` |
+| 16:35 | `com.openclaw.record-eod` | `tdx/.venv/bin/python workspace/tools/record_eod.py` |
+
+手动补跑:
+
+```bash
+cd /Volumes/T7/Docker/openclaw-docker
+tdx/.venv/bin/python workspace/tools/record_eod.py [YYYY-MM-DD] [--market-state M]
+```
+
+如前置缺失,`record_eod.py` 会跳过对应步骤并继续;不要再把收盘记录链挂回 Docker scheduler。
 
 一句话:**单票分析双写(§23.4)+ 板块排名落 sector_verdicts(§23.5)+ 低位启动扫描批量入库(§23.6),三类齐全才算"做了记录";收盘用 record_eod.py 一键补全(§23.7)。**
 
@@ -1757,3 +1770,123 @@ git push
 15. 单票工具中 `decision.action` 只代表空仓开仓过滤;传入 `--cost/--shares` 后的 `actual_position` 才代表真实持仓纪律。系统 `C试错持有` 是历史试错仓状态,空仓不能当成当前可追买,高成本持仓不能用旧买点解释。
 16. 六类走势归档统一通过 `tdx/chanlun_swing/six_pattern.py` 计算;单票标准字段是 `decision_single` 的 `six_pattern`。第一类必须有日线 3B 证据,30m/60m 小级别右侧确认不能替代日线三买。
 17. 低位启动统一定性为“左侧区域里的右侧试错”: 低位来自 250 日位置和笔起贴底,触发必须来自起涨笔/30m/60m/1m/5m 确认。`tdx/chanlun_low_start.py` 只是 `chanlun_swing_scan` 之上的工程过滤层,stage 只能写 `3B_candidate` / `2B_candidate` / `low_reversal_watch`,不能直接宣称严格递归 1B/2B/3B。底部中枢按 `zg` 的 250 日区间位置判断,DISTRIBUTION 下仓位自动降档,放量只做排序加分。低吸规则必须输出 `practical_plan`,明确能否入场、左右侧属性、仓位档、必退条件和升级条件。
+
+---
+
+## 36. TDX 原生运行优先(2026-05-22)
+
+### 36.1 默认原则
+
+TDX 股票分析链路默认不再依赖 Docker。行情接口、K 线接口、综合分析、缠论单票/扫描、回测、DuckDB 记录、launchd 定时任务、`kline-dashboard` 都优先用本机 `.venv` 原生运行。
+
+Docker 只在需要其它 compose 服务时再打开,例如 `openclaw-gateway`、`douyin`、`ml-stock`。不要为了 TDX API 或 dashboard 默认执行 `docker compose up`。
+
+### 36.2 标准端口和路径
+
+| 项 | 标准值 |
+|----|--------|
+| Native TDX API | `http://127.0.0.1:18800` |
+| K-line dashboard | `http://127.0.0.1:8050` |
+| history DB | `/Volumes/T7-APFS/DbWorkspace/history.db` |
+| repo symlink | `tdx/history.db -> /Volumes/T7-APFS/DbWorkspace/history.db` |
+| RPS/cache DB | `tdx/rps.db` |
+| API 启动脚本 | `tdx/tools/start_native_tdx_api.sh` |
+| launchd 模板 | `tdx/launchd/com.openclaw.tdx-api-native.plist` |
+
+可用环境变量覆盖:
+
+- `TDX_API` / `TDX_API_URL`
+- `TDX_API_HOST`
+- `TDX_API_PORT`
+- `TDX_HISTORY_DB`
+- `TDX_RPS_DB`
+- `SIGNAL_DIR`
+- `WATCHLIST_FILE`
+
+### 36.3 启动命令
+
+启动原生 TDX API:
+
+```bash
+cd /Volumes/T7/Docker/openclaw-docker/tdx
+./tools/start_native_tdx_api.sh
+```
+
+启动 `kline-dashboard`:
+
+```bash
+cd /Volumes/T7/Docker/openclaw-docker/tdx
+TDX_API=http://127.0.0.1:18800 ./.venv/bin/python kline_dashboard.py
+```
+
+打开浏览器:
+
+```text
+http://127.0.0.1:8050
+```
+
+安装 dashboard 原生依赖(首次或缺包时):
+
+```bash
+cd /Volumes/T7/Docker/openclaw-docker/tdx
+./.venv/bin/pip install dash dash-bootstrap-components
+```
+
+### 36.4 验证命令
+
+```bash
+curl -sS http://127.0.0.1:18800/quote/600438
+curl -sS 'http://127.0.0.1:18800/kline/600438?period=daily&count=3'
+curl -sS http://127.0.0.1:18800/analyze/600438
+```
+
+`600438` 在原生接口验证通过时返回过:最新价 `16.10`,涨跌幅 `+3.27%`,且 `/analyze/600438` 可返回 MA/MACD/RSI/BOLL/RPS。
+
+### 36.5 Docker 端口冲突处理
+
+如果 `18800` 被 Docker Desktop 占用:
+
+```bash
+lsof -nP -iTCP:18800 -sTCP:LISTEN
+```
+
+先停止 Docker TDX 服务或退出 Docker Desktop。若 Docker CLI 卡住,可结束 Docker Desktop 业务进程;`com.docker.vmnetd` 是系统 helper,可能残留,通常不占 `18800/18801`。
+
+临时避让端口时可用:
+
+```bash
+TDX_API_PORT=18802 ./tools/start_native_tdx_api.sh
+TDX_API=http://127.0.0.1:18802 ./.venv/bin/python kline_dashboard.py
+```
+
+### 36.6 已完成的代码调整
+
+- `services/runtime_config.py` 统一 native/docker 路径和 API 默认值。
+- `/app/history.db` 改为 `TDX_HISTORY_DB` 或 `tdx/history.db`。
+- `/app/rps.db` 改为 `TDX_RPS_DB` 或 `tdx/rps.db`。
+- `http://tdx-api:8080` 改为本机默认 `http://127.0.0.1:18800`,Docker scheduler 通过 compose environment 显式保留内部地址。
+- `kline_dashboard.py` 支持原生 `TDX_API` 连接和本地 watchlist 搜索。
+
+### 36.7 当前偏好
+
+后续用户问“拉取最新接口”“看 K 线”“跑缠论”“记录 DuckDB”“回测”时,优先使用原生 TDX API 和本地脚本。只有用户明确要求 Docker 或任务属于其它 compose 服务时,再使用 Docker。
+
+### 36.8 原生收盘同步链路
+
+TDX 同步/记录链路默认全部使用 launchd 原生任务:
+
+| 时间 | 任务 | 产物 |
+|------|------|------|
+| 15:30 | `com.openclaw.tdx-sync` | `history.db` 元数据/行业映射 |
+| 15:45 | `com.openclaw.chanlun-low-start` | `logs/chanlun_low_start_v04_1_YYYYMMDD.{json,md}` |
+| 16:20 | `com.openclaw.sector-rps` | `tdx/rps.db` 的 `sw_rps` / `sector_rps` |
+| 16:35 | `com.openclaw.record-eod` | `workspace/stock_analyses.duckdb` 的板块快照和低位启动候选 |
+
+对应模板:
+
+- `tdx/launchd/com.openclaw.tdx-sync.plist`
+- `tdx/launchd/com.openclaw.chanlun-low-start.plist`
+- `tdx/launchd/com.openclaw.sector-rps.plist`
+- `tdx/launchd/com.openclaw.record-eod.plist`
+
+不要再使用旧的 `docker exec openclaw-docker-tdx-scheduler-1 ...` 同步链路。
