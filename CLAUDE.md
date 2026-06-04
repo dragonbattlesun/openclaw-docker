@@ -654,6 +654,38 @@ B 类对应 strict / medium。
 - T1:+15%。
 - T2:+25%。
 
+### 13.3 sector_jump_v1 板块跳升公式 (B 类量化补充, 2026-05-30)
+
+**chanlun_low_start v0.4.3 是 A 类专用 (range_pos_250 ≤ 0.35 严苛贴底), 漏过电力央企等板块轮动龙头。** sector_jump_v1 抓 B 类:
+
+入场公式:
+- 板块: sw_rps5 ≥ 90 + 5 日跳升 ≥ 20 (从冷转热)
+- 个股: RPS5 ≥ 70 (板块成员里非掉队腰部领涨)
+- 价格: ≥ 5 元
+- 缠论: ZigZag 5% pivot=L + 笔起距今 ≥ 3 日 + close > 笔起 × 1.005 + 非顶分型
+- A股 约束: 当日非涨停板 (买不到)
+- 月份: 跳过 BEAR 月份 (2025-03/2025-11/2026-02)
+
+策略 (回测验证 +5.27% / Sharpe 0.307, 14 月真实 + A股 真实约束):
+- 止损双层: 跌破 bi_low (-3%~-5%) 或 入场 × 0.92 (-8%) → 全清
+- 止盈分段: T1 +15% 减半 / T2 +25% 减 25% / T3 +40% 全清
+- 加仓 v2: 浮盈 ≥ +5% 后回踩 ma5 + 收阳 → 加 +50% 原仓位
+- 时间上限: 30 个交易日
+
+仓位 (DIST 默认):
+- 单仓 4% (而非理论 5-8%, 防跌停跳空)
+- 单板块 ≤ 3 只
+- 加仓后单仓 ≤ 6%
+- 总仓位 ≤ 50%
+
+实盘扫描:
+```bash
+tdx/.venv/bin/python workspace/tools/scan_sector_jump_optimal.py
+tdx/.venv/bin/python workspace/tools/scan_dual_track.py  # v1严格+v2放宽双轨
+```
+
+详见 [[sector-jump-v1]] + [[a-share-execution-constraints]] + [[segmented-profit-taking]]。
+
 ---
 
 ## 14. I:A 股资金面综合评分
@@ -723,6 +755,12 @@ T 不通过可以否决题材叙事和弱技术机会。
 
 ## 16. T1:缠论三级共振
 
+### 16.0 缠论 108 核心规则强制遵守
+
+以后所有涉及缠论的分析、选股、持仓诊断、买卖点判断、纯缠论波段、递归买卖点、换仓决策,必须遵守 `/Users/dragonbattlesun/.codex/memories/chanlun/chanlun_108_core_rules.md`;仓库内同步参考为 `memory/reference_chanlun_108_core_rules.md`。
+
+若本文件 §16、§35、§35.6、§9、§22 或任何旧提示词/工具标签与 `chanlun_108_core_rules.md` 的细则冲突,以 `chanlun_108_core_rules.md` 为准。工具输出的 `last_bi`、`1B/2B/3B`、`decision.action` 只能作为候选,不能替代原文结构、连续多日多级别人工合笔和买卖点纪律。
+
 ### 16.1 三级分工
 
 ```text
@@ -732,6 +770,41 @@ T 不通过可以否决题材叙事和弱技术机会。
 ```
 
 高级别优先级:月线 > 周线 > 日线。
+
+#### 16.1.1 走势自同构性与递归校验
+
+缠论走势的自同构性指:不同级别走势都服从同一套结构规则。
+
+```text
+分型 → 笔 → 线段 → 中枢 → 走势类型 → 买卖点
+```
+
+区别只在级别,不在规则。大级别的一笔 / 一段,内部可以由次级别完整走势类型递归生成;一个大级别中枢,内部也可能包含多个小级别中枢。
+
+实战强制口径:
+
+1. 先声明本次操作级别,再写观察级别和进场级别。
+2. 本级别买卖点只能由本级别结构定性;小级别只负责精确触发、背驰验证、回试验证和止损确认。
+3. 小级别信号不能直接替代大级别信号:`5m 底背驰 ≠ 30m 严格1B`;`30m 三买 ≠ 日线三买`;`小级别二买 ≠ 大级别三买`。
+4. 小转大必须按链条确认:小级别背驰候选 → 本级别反向笔 / 走势类型完成 → 本级别中枢形成 → 离开中枢 → 第一次回踩不回中枢。链条缺一步,只能写候选或观察。
+5. 禁止混级别画图:不能用 30m 的笔、5m 的回试、日线的中枢拼成一个买点;每个中枢必须说明由哪个级别的次级别走势构成。
+6. 输出必须分成 `本级别结论`、`次级别支持/反证`、`能否递归升级`、`升级触发位`、`升级失败位`。
+
+正确表达:
+
+```text
+30m 本级别仍是中枢震荡,无严格 3B。
+5m 出现底背驰,只能支持 30m 下沿回补候选。
+若后续 30m 向上离开 ZG,并第一次回踩不回中枢,才升级为 30m 3B 候选 / 严格校验。
+```
+
+错误表达:
+
+```text
+5m 底背驰,所以 30m 一买成立。
+30m 三买成立,所以日线三买成立。
+这个中枢用日线高低点 + 30m 笔 + 5m 回踩一起算。
+```
 
 ### 16.2 每个级别必须判断
 
@@ -743,6 +816,7 @@ T 不通过可以否决题材叙事和弱技术机会。
 4. MACD 背驰判定。
 5. 走势级别归类:上涨 / 下跌 / 中枢盘整第几浪。
 6. 区间位置:close / HHV / LLV。
+7. 自同构递归关系:本级别结论、次级别支持/反证、能否升级、触发位和失败位。
 
 ### 16.2.5 缠论 12 名词速查(完整版见 memory: reference_chanlun_terminology.md)
 
@@ -781,6 +855,72 @@ T 不通过可以否决题材叙事和弱技术机会。
 | 1S | 上涨背驰后第一卖点 | 防卖 |
 | 2S | 1S 后反弹不过前高 | 反弹失败,减仓 / 清仓 |
 | 3S | 跌破中枢后反抽不过 | 逃命点 |
+
+#### 16.3.1 ⭐ 原文严格定性 + T+1 执行试错 (2026-06-04 修订)
+
+**项目所有缠论买卖点定性,统一以 PDF 108 课原文严格定义为准。工程候选不能写成严格 1B/2B/3B 或确认仓;但可在 A 股 T+1 风险可控时,单独写成 `执行试错仓`。**
+
+详见 `memory/reference_chanlun_108_core_rules.md` 附录 + `memory/feedback_chanlun_engineering_label.md`。
+
+##### 原文严格定义(必须满足)
+
+| 买卖点 | 必备条件(全部满足) |
+|---|---|
+| **1B** | ① 本级别下跌趋势成立(a+A+b+B+c 三段同向 + 至少 1 个中枢)<br>② c 段创新低后 MACD 红/绿柱面积衰竭(同级别背驰)<br>③ 出现反弹笔(第一次反弹买点) |
+| **2B** | ① 1B 已成立<br>② 次级别回踩(级别明确,不能临时切)<br>③ 回踩低点 > 1B 低<br>④ 回踩没破最近一个中枢的 ZD |
+| **3B** | ① 价格从中枢内向 ZG 上方离开<br>② 离开后**第一次次级别回试**(有时间次序)<br>③ 回试**不破** ZG<br>**三条件缺一不可** |
+| **1S/2S/3S** | 镜像 1B/2B/3B,以同样严格度判定 |
+
+##### 自动扫描脚本输出的 1B/2B/3B 处理流程
+
+工具(`chanlun_low_start_v04_1.py` / `sector_jump_v1` / `stock_deep_analysis.py` 的 ZigZag 笔)给出的 1B/2B/3B,**默认视为候选**,**必须经过下列校验后才能确认严格买点或确认仓位**:
+
+```
+扫描脚本输出 1B/2B/3B 候选
+   ↓
+[原文严格校验 — 人工或脚本扩展]
+   ↓
+1B 校验:
+   ① 月/周线下跌趋势成立? (有同向 a+A+b+B+c)
+   ② c 段是否同级别背驰? (MACD 红绿柱面积比较)
+   ③ 反弹笔是否成立?
+   → 三项全过 → 升格为「原文严格 1B」, 可按级别执行
+   → 任一缺失 → 不确认严格 1B, 只能观察或按 T+1 试错层处理
+
+2B 校验:
+   ① 1B 严格成立?
+   ② 回踩级别明确?
+   ③ 不破 1B 低 + 不破中枢 ZD?
+   → 三项全过 → 「原文严格 2B」, 可按级别执行
+
+3B 校验:
+   ① 已离开 ZG?
+   ② 出现第一次次级别回试?
+   ③ 回试不破 ZG?
+   → 三项全过 → 「原文严格 3B」, 可按级别执行
+```
+
+##### 输出口径(强制)
+
+```
+✅ 正确: "原文严格 2B 已成立, 可按 medium 执行"
+✅ 正确: "扫描候选 2B 不达原文严格 (回踩级别不明), 不能给确认仓"
+✅ 正确: "1B候选, 非严格买点;靠近失效位且 T+1 风险可承受, 仅可执行试错仓 loose 2-3%, 次一交易日止损"
+❌ 错误: "2B 候选已成立, 可按 medium 加仓"
+❌ 错误: "工程标签 1B = 原文严格 1B"
+```
+
+##### 仓位规则(严格定性 + T+1 折扣)
+
+```
+原文严格 1B → A1 standard early 5-8%
+原文严格 2B → medium 卫星仓 5-10% (回踩右侧确认, early/medium 最佳位)
+原文严格 3B → strict 核心仓 ≤ 15% (趋势确认)
+
+未达原文严格 → 不能给确认仓 / 趋势仓;只能观察、等待,或在靠近失效位且 T+1 风险可承受时写 `执行试错仓 loose 2-3%`
+```
+
+**§16.4 三级共振矩阵的 1B/2B/3B 全部按原文严格判定**,任一级别若不满足原文严格条件,在矩阵中视为"无原文严格买点";但输出仍要列明候选路径、触发位、失效位和是否允许 T+1 `执行试错仓`。
 
 ### 16.4 三级共振矩阵
 
@@ -1190,7 +1330,65 @@ tdx/.venv/bin/python workspace/tools/record_eod.py [YYYY-MM-DD] [--market-state 
 
 如前置缺失,`record_eod.py` 会跳过对应步骤并继续;不要再把收盘记录链挂回 Docker scheduler。
 
-一句话:**单票分析双写(§23.4)+ 板块排名落 sector_verdicts(§23.5)+ 低位启动扫描批量入库(§23.6),三类齐全才算"做了记录";收盘用 record_eod.py 一键补全(§23.7)。**
+一句话:**单票分析双写(§23.4)+ 板块排名落 sector_verdicts(§23.5)+ 低位启动扫描批量入库(§23.6)+ 板块资金流向(同花顺)落 sector_capital_flow(§23.8)+ 申万行业资金流(东财聚合)落 sector_money_flow_daily(§23.9),五类齐全才算"做了记录";收盘用 record_eod.py 一键补全(§23.7)。**
+
+### 23.8 板块资金流向快照(每日盘后)
+
+每日盘后必须把**板块资金流向**入库,与 §23.5 板块 RPS 是双视角(rps=价格相对强度;capital_flow=主力净流入金额)。
+
+```bash
+.venv/bin/python /Volumes/T7/Docker/openclaw-docker/workspace/tools/save_sector_capital_flow.py [YYYY-MM-DD]
+# 默认 = 今日(基于本机时区);record_eod.py 自动调用,无需单独跑
+```
+
+**数据源**:同花顺即时接口(akshare `stock_fund_flow_industry` / `stock_fund_flow_concept`),走 host_fetch_relay 绕开东财 push2 TLS 切断。
+
+**写入表**:`sector_capital_flow`(stock_analyses.duckdb)
+- 行业:90 行(THS 行业分类)
+- 概念:387 行(THS 概念分类)
+- 同日重跑覆盖,按 `(date, source, sector_type)` 删除后写入
+- 字段:rank_pos / name / chg_pct / inflow_yi / outflow_yi / **net_yi** / company_count / leader_name / leader_chg_pct / leader_price
+
+**关键字段**:`net_yi`(主力净额,正=流入,亿元)。
+
+**查询**:
+- `python3 query_analysis.py flow [日期]` — 当日 top10 流入/流出
+- `python3 query_analysis.py flow-history 行业 半导体 30` — 单板块 30 天轨迹
+
+**用途**:
+- §4 裁决链第 4 级「机构与资金趋势」的客观证据(如 5/29 半导体 -346 亿验证主跌)
+- 板块标签校验:连续 3 天净流出 > 50 亿 = 派发期;连续 3 天 +20 亿 = 资金承认底部启动
+- 与 §23.5 sector_verdicts 联合查询:rps5 高 + 资金流出 = 反抽假启动;rps5 低 + 资金流入 = 真底部启动
+
+### 23.9 申万一级行业资金流聚合(每日盘后,东财个股口径)
+
+§23.8 是同花顺**板块快照终值口径**(只有当日,无历史);§23.9 是**东财个股聚合口径**(money_flow_daily 已积累 ~ 8 个月,可看趋势)。两者口径不同**不可直接比较**,**互为参照**。
+
+```bash
+.venv/bin/python workspace/tools/save_sw_money_flow.py [YYYY-MM-DD]
+.venv/bin/python workspace/tools/save_sw_money_flow.py --backfill 2026-05-01 2026-05-31
+# 默认 = money_flow_daily MAX(date);record_eod.py 自动调用
+```
+
+**数据源**:`tdx/rps.db` 的 `money_flow_daily`(东财 akshare.stock_individual_fund_flow,5000+ 个股逐笔)× `sw_stock_industry`(申万一级 31 行业映射)。
+
+**写入表**:`sector_money_flow_daily`(stock_analyses.duckdb)
+- 31 行(申万一级)× N 个交易日,同日重跑覆盖
+- 字段:`industry_name` / `rank_pos` / **`main_net`(元)** / `super_large_net` / `large_net` / `medium_net` / `small_net` / `n_stocks` / `avg_chg_pct` / `leader_code` / `leader_main_net`
+
+**查询**:
+- `python3 query_analysis.py sw-flow [日期]` — 当日申万 Top10 流入/流出
+- `python3 query_analysis.py sw-flow-history 电子 30` — 单行业 30 日轨迹 + 累计
+- `python3 query_analysis.py sw-flow-rank 20` — 申万 31 行业 N 日累计排名
+
+**用途**(§23.8 不能做的):
+- **趋势观察**:N 日累计资金流向(电子 18 日 +10054 亿、电力设备 -3412 亿)
+- **§22 换仓决策树**:旧仓所在行业 vs 新仓所在行业,谁是 5 日 / 20 日累计净流入
+- **L 维度长牛主线锁定**:60 日累计排名前 3 行业 = 真主线候选
+
+**口径警告**:
+- main_net 单位是元(本地原始),与同花顺板块快照(亿元)**不能直接相减**,5-29 同行业可差 8x
+- 单看排名和方向可信;数值用于横向对比、不用于绝对量级
 
 ---
 
@@ -1620,6 +1818,8 @@ CANSLIM:
 | reference_canslim_perf.md | §7 | CANSLIM 性能数据参考 |
 | reference_tdxapi_defaults.md | §23.2 | TDX API 默认参数对照表 |
 | reference_stock_analyses_db.md | §23.4 | stock_analyses.duckdb 工具链详细说明 |
+| reference_sector_jump_v1.md | §13.3 | sector_jump_v1 板块跳升公式 + 完整修订策略 (-bi_low/-8% / +15%+25%+40% / 加仓 v2) |
+| reference_agent_note_writing_sop.md | §33.2 | 用户笔记 / 交易反馈 / 缠论纠错的标准整理格式 |
 
 ### 33.2 跨会话 feedback 文件(memory/)
 
@@ -1638,16 +1838,26 @@ CANSLIM:
 | feedback_monthly_filter_only.md | A 类 early 月线只做否决器(对应 §12.3) |
 | feedback_early_essence_weekly.md | early 本体在周线 + A0/A1 分档 v4 终稿(对应 §12) |
 | feedback_global_gitignore_pitfall.md | ~/.gitignore_global 含 ".gitignore" 异常规则会屏蔽项目级 .gitignore(对应 §34.3.7) |
+| feedback_a_share_execution_constraints.md | A股 T+1+涨跌停+滑点+手续费让回测理论值打 75% 折扣, 单仓须降到 4% 防跌停跳空(对应 §13.3) |
+| feedback_segmented_profit_taking.md | 分段止盈 +15%/+25%/+40% 比单一 +40% Sharpe +22%, 让赢家跑同时锁早期收益(对应 §13.3) |
+| feedback_chanlun_engineering_label.md | 原文严格 1B/2B/3B 只做定性标准, 候选需单独标注并按 A 股 T+1 折扣给执行试错仓(对应 §16.3.1) |
 
 ### 33.3 工具链(workspace/tools/)
 
 | 工具 | 用途 |
 |---|---|
 | save_analysis.py | 单票分析双写到 DB + .md(§23.4) |
-| query_analysis.py | 7 个常用查询封装(§23.4) |
+| query_analysis.py | 9 个常用查询封装(§23.4 + §23.8 flow / flow-history) |
 | save_sector_verdicts.py | 板块判断快照入库 sector_verdicts(§23.5) |
 | ingest_lowstart.py | 低位启动扫描 json 批量入库(§23.6) |
-| schema.sql | DuckDB schema 定义(stock_analyses 40+ 字段 + sector_verdicts) |
+| save_sector_capital_flow.py | 板块资金流向(同花顺)入库 sector_capital_flow(§23.8) |
+| save_sw_money_flow.py | 申万一级行业资金流(东财个股聚合)入库 sector_money_flow_daily(§23.9) |
+| record_eod.py | 收盘一键:§23.5 + §23.6 + §23.8 + §23.9 |
+| schema.sql | DuckDB schema 定义(stock_analyses 40+ 字段 + sector_verdicts + sector_capital_flow + sector_money_flow_daily) |
+| scan_sector_jump_optimal.py | sector_jump_v1 实盘扫描, 输出含 A股 真实约束的完整交易计划 (§13.3) |
+| scan_dual_track.py | v1 严格 + v2 放宽 双轨扫描, S/A/B 三档分级 (§13.3) |
+| backtest_sector_jump_chanlun.py | 板块跳升 + 缠论结构层 14 月真实回测 (验证最优参数) |
+| backtest_a_share_realistic.py | 加 A股 真实约束 (T+1/涨跌停/滑点/手续费) 的回测器 |
 
 ### 33.4 备份文件
 
@@ -1713,6 +1923,7 @@ git push
 ### 35.0 模块边界
 
 本模块**不引用 §4 裁决链**,自成纪律。
+但只要涉及缠论结构、买卖点、线段/中枢/背驰/走势类型判断,仍必须遵守 §16.0 的 `chanlun_108_core_rules.md` 强制核心规则。
 共享:`history.db` / `stock_industry`(数据基础设施)。
 适用场景:用户明确说"按缠论波段做"或"看 chanlun_swing 候选"。
 **默认场景仍是 §1-§32 CANSLIM 主流程**。
@@ -1890,3 +2101,14 @@ TDX 同步/记录链路默认全部使用 launchd 原生任务:
 - `tdx/launchd/com.openclaw.record-eod.plist`
 
 不要再使用旧的 `docker exec openclaw-docker-tdx-scheduler-1 ...` 同步链路。
+
+### 36.9 术语中文化:trade_filter
+
+面向用户的股票分析输出中,不要直接写 `trade_filter`。统一使用中文:
+
+- `trade_filter` → `交易过滤`
+- `60m trade_filter 通过` → `60m 交易过滤通过`
+- `30m trade_filter 未通过` → `30m 交易过滤未通过`
+- `trade_filter 砍` → `交易过滤砍掉`
+
+内部 JSON/API 字段名如 `trade_filter_passed`、`trade_reasons` 保持不变,避免破坏脚本和测试；只有在解释内部字段时才可括号注明原字段名。
