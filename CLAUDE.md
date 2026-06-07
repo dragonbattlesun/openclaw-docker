@@ -757,9 +757,9 @@ T 不通过可以否决题材叙事和弱技术机会。
 
 ### 16.0 缠论 108 核心规则强制遵守
 
-以后所有涉及缠论的分析、选股、持仓诊断、买卖点判断、纯缠论波段、递归买卖点、换仓决策,必须遵守 `/Users/dragonbattlesun/.codex/memories/chanlun/chanlun_108_core_rules.md`;仓库内同步参考为 `memory/reference_chanlun_108_core_rules.md`。
+以后所有涉及缠论的分析、选股、持仓诊断、买卖点判断、纯缠论波段、递归买卖点、换仓决策,必须遵守 `/Volumes/T7/Docker/openclaw-docker-context/system-memories/chanlun/chanlun_108_core_rules.md`;项目同级同步参考为 `/Volumes/T7/Docker/openclaw-docker-context/memory/reference_chanlun_108_core_rules.md`,仓库内同步参考为 `memory/reference_chanlun_108_core_rules.md`。
 
-若本文件 §16、§35、§35.6、§9、§22 或任何旧提示词/工具标签与 `chanlun_108_core_rules.md` 的细则冲突,以 `chanlun_108_core_rules.md` 为准。工具输出的 `last_bi`、`1B/2B/3B`、`decision.action` 只能作为候选,不能替代原文结构、连续多日多级别人工合笔和买卖点纪律。
+若本文件 §16、§35、§35.6、§9、§22 或任何旧提示词/工具标签与 `chanlun_108_core_rules.md` 的细则冲突,以项目同级目录版本为准。工具输出的 `last_bi`、`1B/2B/3B`、`decision.action` 只能作为候选,不能替代原文结构、连续多日多级别人工合笔和买卖点纪律。
 
 ### 16.1 三级分工
 
@@ -1858,6 +1858,12 @@ CANSLIM:
 | scan_dual_track.py | v1 严格 + v2 放宽 双轨扫描, S/A/B 三档分级 (§13.3) |
 | backtest_sector_jump_chanlun.py | 板块跳升 + 缠论结构层 14 月真实回测 (验证最优参数) |
 | backtest_a_share_realistic.py | 加 A股 真实约束 (T+1/涨跌停/滑点/手续费) 的回测器 |
+| scan_2560.py | 2560 战法 4 态扫描(诱多①/冲量②/做量③/缩量④),25日价均线+5/60日量线,叠加纪律护栏(2026-06-07) |
+| scan_low_start_v2.py | 低位启动 v2:板块底共振 + 启动时序三段(在「启动当周」抓底),`--rebound` 含箱体回踩底(详 [[缠论低位启动严格定义]] v2) |
+| scan_earnings.py | 业绩硬门槛扫描(CANSLIM C+A:净利同比≥25%+扣非>0+ROE≥8),先用 RPS 缩池提速。`--max-pos` 限位置(详 [[业绩好与低位互斥]]) |
+| draw_chanlun_detail.py | 缠论详图:czsc 原文笔(分型+包含处理,**非百分比 ZigZag**)+ 走势中枢(含 state)+ 量能 + MACD 三层,与 kline_dashboard 同源 czsc_adapter(详 [[czsc原文笔绘图]]) |
+
+> ⚠️ 以上 4 个工具在 `workspace/tools/`,按 .gitignore 约定不入父 repo,仅本地保留。
 
 ### 33.4 备份文件
 
