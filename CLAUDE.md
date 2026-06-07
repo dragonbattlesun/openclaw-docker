@@ -1861,7 +1861,7 @@ CANSLIM:
 | scan_2560.py | 2560 战法 4 态扫描(诱多①/冲量②/做量③/缩量④),25日价均线+5/60日量线,叠加纪律护栏(2026-06-07) |
 | scan_low_start_v2.py | 低位启动 v2:板块底共振 + 启动时序三段(在「启动当周」抓底),`--rebound` 含箱体回踩底(详 [[缠论低位启动严格定义]] v2) |
 | scan_earnings.py | 业绩硬门槛扫描(CANSLIM C+A:净利同比≥25%+扣非>0+ROE≥8),先用 RPS 缩池提速。`--max-pos` 限位置(详 [[业绩好与低位互斥]]) |
-| draw_chanlun_detail.py | 缠论详图:czsc 原文笔(分型+包含处理,**非百分比 ZigZag**)+ 走势中枢(含 state)+ 量能 + MACD 三层,与 kline_dashboard 同源 czsc_adapter(详 [[czsc原文笔绘图]]) |
+| draw_chanlun_detail.py | 缠论详图:czsc 原文笔(分型+包含处理,**非百分比 ZigZag**)+ 走势中枢(含 state)+ 量能 + MACD 三层。**默认前复权**(akshare 东财→新浪 fallback,除权股才准),`--raw` 才用本地不复权快路径;`--period weekly/daily/60min/30min/5min`(详 [[czsc原文笔绘图]]、[[本地库未前复权污染分析]]) |
 
 > ⚠️ 以上 4 个工具在 `workspace/tools/`,按 .gitignore 约定不入父 repo,仅本地保留。
 
