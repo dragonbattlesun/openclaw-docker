@@ -2184,3 +2184,32 @@ TDX 同步/记录链路默认全部使用 launchd 原生任务:
 - `trade_filter 砍` → `交易过滤砍掉`
 
 内部 JSON/API 字段名如 `trade_filter_passed`、`trade_reasons` 保持不变,避免破坏脚本和测试；只有在解释内部字段时才可括号注明原字段名。
+
+### 36.10 术语中文化:缠论引擎状态词(chanlun_native / 走势类型 / 趋势背驰)
+
+面向用户的输出中,**不要直接写 chanlun_native / line_segments / trend_types / StrictTrendDivergence 的英文状态值和机器标签**(同 `S3_candidate conf=0.85` 一类)。统一用中文讲结构:
+
+**走势类型(classify_trend_type)的 status:**
+- `trend` → `已走出单边趋势`(下跌趋势 / 上涨趋势)
+- `expansion` → `中枢扩张震荡`(不是趋势)
+- `consolidation` → `盘整`(单个中枢内震荡)
+- `no_center` → `还没形成线段级中枢`(趋势未成形)
+
+**趋势背驰(detect_strict)的 status:**
+- `strict_candidate` → `线段级趋势背驰候选(已成形)`
+- `strict_not_diverged` → `趋势成立但力度未衰竭,无背驰`
+- `not_trend` → `线段级还没走出趋势`(扩张/盘整/中枢未成,**不要写 not_trend**)
+- `no_segments` → `线段数不足,结构未成形`
+
+**中枢状态(ZSState):**
+- `broken_up/broken_down` → `向上/向下突破中枢`
+- `leaving_up/leaving_down` → `正在向上/向下离开中枢`
+- `forming` → `中枢形成中`
+- `extending/expanding` → `中枢延伸/扩张`
+
+**买卖点候选** 按 §16.3.2 四档中文说(真买点/标准候选/候选存疑/伪买点),不写 `B1_candidate conf=0.55`。
+
+错误示例:`但线段级 not_trend` / `detect_strict=no_segments` / `走势类型=expansion`
+正确示例:`但线段级还是中枢扩张震荡,没走出下跌趋势` / `线段数不足,结构还没成形`
+
+内部字段/JSON/日志保持英文不变,只有面向用户解释时才用中文。
