@@ -761,13 +761,27 @@ T 不通过可以否决题材叙事和弱技术机会。
 
 若本文件 §16、§35、§35.6、§9、§22 或任何旧提示词/工具标签与 `chanlun_108_core_rules.md` 的细则冲突,以项目同级目录版本为准。工具输出的 `last_bi`、`1B/2B/3B`、`decision.action` 只能作为候选,不能替代原文结构、连续多日多级别人工合笔和买卖点纪律。
 
-### 16.0.1 统一缠论引擎:一律用 chanlun_native(禁止裸 czsc / 百分比 ZigZag)
+### 16.0.1 统一缠论引擎:一律用自研 chanlun_native(禁止任何三方库 czsc/rs_czsc/ZigZag)
 
-**以后所有缠论的笔、分型、中枢、买卖点计算,统一使用项目自研引擎 `tdx/chanlun_swing/chanlun_native.py` 的 `ChanlunAnalyzer`。禁止再直接用裸 `czsc.CZSC`,也禁止用百分比 ZigZag 笔。**
+**以后所有缠论的笔、分型、线段、中枢、走势类型、买卖点、画图,统一使用项目自研引擎(`tdx/chanlun_swing/` 下的 `chanlun_native.py` + `line_segments.py` + `trend_types.py` + `strict_trend_divergence.py`)。禁止使用任何三方缠论库(`czsc` / `rs_czsc` / 百分比 ZigZag 等)。**
 
-原因(2026-06-14 实测定位):裸 `czsc.CZSC().bi_list` 的笔端点因「包含处理 + 分型确认」机制,会锚在**非实际极值**的 K 线上,系统性偏离真实高低点约 1 天(实测安泰 000969:真实底在 6-10 的 20.00,裸 czsc 标在 6-09 的 20.65)。**笔错 → 中枢的起讫/归属错 → 2B/3B 触发时机和买点价全错 → 回测胜率失真**。这不是传入数据的问题(OHLC 正确),是 czsc 库的固有算法行为,无法靠喂不同数据修正。
+升级说明(2026-06-14):此前 §16.0.1 只禁"裸 czsc",保留 czsc 做画图/校准;现升级为**完全不用三方库**——自研 native 引擎已补齐笔→线段(`build_segment_list`)→线段中枢(`build_segment_zhongshu_list`)→走势类型(`classify_trend_type`)→趋势背驰(`StrictTrendDivergence`)的完整递归,功能已覆盖 czsc 且更接近原文,不再需要任何三方库。
 
-`chanlun_native` 的笔端点取**真实极值点**(顶取 max(high)、底取 min(low) 的那根 K),与 `draw_chanlun_detail.py` / `kline_dashboard` 看板同源(`czsc_adapter.py` 内部正是用 native 校准 czsc)。
+**自研引擎组件(全部在 `tdx/chanlun_swing/`):**
+| 组件 | 文件 | 作用 |
+|---|---|---|
+| 笔/分型/中枢/买卖点候选 | chanlun_native.py | `ChanlunAnalyzer`(bi_list/zhongshu_list_strict/find_candidates) |
+| 线段 | line_segments.py | `build_segment_list`(特征序列分解) |
+| 走势类型 | trend_types.py | `build_segment_zhongshu_list` + `classify_trend_type` |
+| 趋势背驰 | strict_trend_divergence.py | `StrictTrendDivergence`(detect/detect_strict) |
+| 画图 | tools/draw_chanlun_native.py | native笔+线段+中枢+走势类型,三层(价/量/MACD) |
+
+**为什么不用三方库(2026-06-14 实测+调研):**
+- 裸 `czsc.CZSC().bi_list` 笔端点因包含处理+分型确认机制,系统性偏离真实极值约1天(安泰000969真实底6-10的20.00,czsc标6-09的20.65)→笔错→中枢/买卖点全错。
+- czsc 的背驰 `tas_macd_bc` 是"K线窗口比较",比自研更糙;买卖点全标"辅助";且 czsc 也缺线段/走势类型层。
+- 自研 native 笔端点取真实极值,且已补齐线段/走势类型,功能更全更准。
+
+**迁移(逐步):** 历史脚本(chanlun_low_start*/kline_dashboard/czsc_adapter/draw_chanlun_four_panel 等)仍在用 czsc 的,逐个重构为 native,每个单独测试通过再切换;**新写的缠论代码一律直接用 native,不再引入 czsc**。详见 [[chanlun-native-engine]] 迁移清单。
 
 标准调用(零修改第三方库):
 
