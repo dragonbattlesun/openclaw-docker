@@ -662,7 +662,7 @@ B 类对应 strict / medium。
 - 板块: sw_rps5 ≥ 90 + 5 日跳升 ≥ 20 (从冷转热)
 - 个股: RPS5 ≥ 70 (板块成员里非掉队腰部领涨)
 - 价格: ≥ 5 元
-- 缠论: ZigZag 5% pivot=L + 笔起距今 ≥ 3 日 + close > 笔起 × 1.005 + 非顶分型
+- 缠论: ZigZag 5% pivot=L + 笔起距今 ≥ 3 日 + close > 笔起 × 1.005 + 非顶分型(⚠️ 这是 sector_jump_v1 回测时固化的历史粗筛实现;新做缠论结构判断一律按 §16.0.1 用 chanlun_native,不要再用 ZigZag)
 - A股 约束: 当日非涨停板 (买不到)
 - 月份: 跳过 BEAR 月份 (2025-03/2025-11/2026-02)
 
@@ -760,6 +760,39 @@ T 不通过可以否决题材叙事和弱技术机会。
 以后所有涉及缠论的分析、选股、持仓诊断、买卖点判断、纯缠论波段、递归买卖点、换仓决策,必须遵守 `/Volumes/T7/Docker/openclaw-docker-context/system-memories/chanlun/chanlun_108_core_rules.md`;项目同级同步参考为 `/Volumes/T7/Docker/openclaw-docker-context/memory/reference_chanlun_108_core_rules.md`,仓库内同步参考为 `memory/reference_chanlun_108_core_rules.md`。
 
 若本文件 §16、§35、§35.6、§9、§22 或任何旧提示词/工具标签与 `chanlun_108_core_rules.md` 的细则冲突,以项目同级目录版本为准。工具输出的 `last_bi`、`1B/2B/3B`、`decision.action` 只能作为候选,不能替代原文结构、连续多日多级别人工合笔和买卖点纪律。
+
+### 16.0.1 统一缠论引擎:一律用 chanlun_native(禁止裸 czsc / 百分比 ZigZag)
+
+**以后所有缠论的笔、分型、中枢、买卖点计算,统一使用项目自研引擎 `tdx/chanlun_swing/chanlun_native.py` 的 `ChanlunAnalyzer`。禁止再直接用裸 `czsc.CZSC`,也禁止用百分比 ZigZag 笔。**
+
+原因(2026-06-14 实测定位):裸 `czsc.CZSC().bi_list` 的笔端点因「包含处理 + 分型确认」机制,会锚在**非实际极值**的 K 线上,系统性偏离真实高低点约 1 天(实测安泰 000969:真实底在 6-10 的 20.00,裸 czsc 标在 6-09 的 20.65)。**笔错 → 中枢的起讫/归属错 → 2B/3B 触发时机和买点价全错 → 回测胜率失真**。这不是传入数据的问题(OHLC 正确),是 czsc 库的固有算法行为,无法靠喂不同数据修正。
+
+`chanlun_native` 的笔端点取**真实极值点**(顶取 max(high)、底取 min(low) 的那根 K),与 `draw_chanlun_detail.py` / `kline_dashboard` 看板同源(`czsc_adapter.py` 内部正是用 native 校准 czsc)。
+
+标准调用(零修改第三方库):
+
+```python
+import sys; sys.path.insert(0, 'tdx')
+from chanlun_swing.chanlun_native import RawBar, ChanlunAnalyzer
+
+# RawBar 字段固定: dt(datetime), open, high, low, close, vol —— 6 个,按位置或关键字传
+bars = [RawBar(dt=r.date, open=r.open, high=r.high, low=r.low, close=r.close, vol=r.vol)
+        for r in df.itertuples()]
+ana = ChanlunAnalyzer(bars, level='daily')   # level: 'monthly'/'weekly'/'daily'/'60min'/'30min'/'5min'
+
+bis = ana.bi_list                  # 笔: 每笔有 .direction('Up'/'Down') .start_fx .end_fx .high .low .is_complete
+zss = ana.zhongshu_list_strict     # 严格中枢: 每个有 .zg .zd .gg .dd .state .start_dt .end_dt .bis
+# fx(分型): .dt .high .low .mark('G'顶/'D'底) .index .is_strong
+```
+
+要点:
+
+- **笔端点是真实极值**,不需要再做 ±8h 时间戳容错(那是裸 czsc / 适配器分钟级的坑,native 不存在)。
+- **中枢直接用 `zhongshu_list_strict`**,带 `state`(向上离开 / 向下破坏 / 形成中),不要再手搓「N 笔中位数」或「3 笔重叠」中枢(手搓极易错,2026-06-14 回测翻车根因)。
+- **`is_complete`** 过滤未完成笔;**`last_bi` 仍只是候选**,与连续多日人工合笔冲突时以人工为准(§16.0)。
+- 画图 / 看板已用 native(经 `czsc_adapter`),所以图、回测、人工结论同源一致。
+
+一句话:**缠论一切结构计算 = `chanlun_native.ChanlunAnalyzer`;裸 czsc 和百分比 ZigZag 一律不用。**
 
 ### 16.1 三级分工
 
@@ -1861,7 +1894,7 @@ CANSLIM:
 | scan_2560.py | 2560 战法 4 态扫描(诱多①/冲量②/做量③/缩量④),25日价均线+5/60日量线,叠加纪律护栏(2026-06-07) |
 | scan_low_start_v2.py | 低位启动 v2:板块底共振 + 启动时序三段(在「启动当周」抓底),`--rebound` 含箱体回踩底(详 [[缠论低位启动严格定义]] v2) |
 | scan_earnings.py | 业绩硬门槛扫描(CANSLIM C+A:净利同比≥25%+扣非>0+ROE≥8),先用 RPS 缩池提速。`--max-pos` 限位置(详 [[业绩好与低位互斥]]) |
-| draw_chanlun_detail.py | 缠论详图:czsc 原文笔(分型+包含处理,**非百分比 ZigZag**)+ 走势中枢(含 state)+ 量能 + MACD 三层。**默认前复权**(akshare 东财→新浪 fallback,除权股才准),`--raw` 才用本地不复权快路径;`--period weekly/daily/60min/30min/5min`(详 [[czsc原文笔绘图]]、[[本地库未前复权污染分析]]) |
+| draw_chanlun_detail.py | 缠论详图:经 `czsc_adapter` 用 **chanlun_native 引擎**(笔端点取真实极值,与 §16.0.1 同源)+ 走势中枢(含 state)+ 量能 + MACD 三层。**默认前复权**(akshare 东财→新浪 fallback,除权股才准),`--raw` 才用本地不复权快路径;`--period weekly/daily/60min/30min/5min`(详 [[czsc原文笔绘图]]、[[本地库未前复权污染分析]]) |
 
 > ⚠️ 以上 4 个工具在 `workspace/tools/`,按 .gitignore 约定不入父 repo,仅本地保留。
 
