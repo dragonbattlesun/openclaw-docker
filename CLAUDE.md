@@ -774,7 +774,9 @@ T 不通过可以否决题材叙事和弱技术机会。
 | 线段 | line_segments.py | `build_segment_list`(特征序列分解) |
 | 走势类型 | trend_types.py | `build_segment_zhongshu_list` + `classify_trend_type` |
 | 趋势背驰 | strict_trend_divergence.py | `StrictTrendDivergence`(detect/detect_strict) |
-| 画图 | tools/draw_chanlun_native.py | native笔+线段+中枢+走势类型,三层(价/量/MACD) |
+| 画图(按需) | tools/draw_chanlun_native.py | native笔+线段+中枢+走势类型,三层(价/量/MACD) |
+
+**画图原则:缠论分析默认不画图。** native 引擎输出的笔端点/中枢ZG-ZD/买卖点候选/走势类型数据,本身已足够做完整缠论分析和文字结论。**只有在必须靠图才能判断时才画**:① 用户明确要图 ② 复杂结构/多中枢叠加纯数据看不清需可视化核对 ③ 要交付给用户看的可视化报告。常规单票/多级别分析直接用 ChanlunAnalyzer 数据,不要每次默认调 draw_chanlun_native。
 
 **为什么不用三方库(2026-06-14 实测+调研):**
 - 裸 `czsc.CZSC().bi_list` 笔端点因包含处理+分型确认机制,系统性偏离真实极值约1天(安泰000969真实底6-10的20.00,czsc标6-09的20.65)→笔错→中枢/买卖点全错。
