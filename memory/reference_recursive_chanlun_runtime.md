@@ -20,6 +20,13 @@
 
 `engine_strict` 只表示对应级别严格结构 proof 成立,不是“可交易”。`proof.trade_permission` 在结构层必须保持 `False`。
 
+级别一致性:
+
+- `LevelStructure.centers` 必须理解为当前节点自身图级别 K 线生成的 strict 笔中枢,来源是 `ChanlunAnalyzer.zhongshu_list_strict`。
+- 它不能由直接子级别中枢代替,也不能把子级别 `centers` 拼成父级别中枢。
+- 一买 / 一卖最终趋势背驰 proof 使用 `StrictTrendDivergence.detect_strict()` 从本级别严格笔重建线段、线段中枢和走势类型;`len(structure.centers) >= 2` 只是趋势背驰可见性前置门,不是最终 proof。
+- 二买 / 二卖当前 recursive proof 只覆盖前置严格一买 / 一卖 + 直接次级别五段门 + 不破前点主路径;盘整背驰确认型二买 / 二卖应作为后续独立 `second_bsp_consolidation_divergence` proof 分支实现,不能直接放宽五段门。
+
 ## 判定步骤
 
 1. 先确定操作级别:
@@ -107,3 +114,5 @@ direct_child proof 已确认 daily->30min 和 30min->5min。
 ## 教训案例
 
 2026-06-21 封装 `tools/recursive_chanlun.py` 时,直接在受限沙箱读取 `tdx/history.db` symlink 会因外部 DB 权限失败;真实本机运行需使用项目标准 runtime 权限 / 本地环境。CLI 设计因此保留 `--source history / api / auto`、`--db` 和 `--api-base`,让盘中使用可以显式切换数据源。
+
+2026-06-21 review 第四轮确认:递归引擎的一买最终 proof 使用线段级 `StrictTrendDivergence.detect_strict()`,不是用次级别中枢冒充本级别中枢;二买盘整背驰路径尚未内生到 recursive proof,属于保守漏覆盖,不是误判严格二买。
