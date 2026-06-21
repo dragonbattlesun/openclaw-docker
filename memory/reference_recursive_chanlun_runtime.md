@@ -36,6 +36,9 @@
 - 硬反证包括:非第一次回调 / 反弹、A/C 不背驰、回调破一买低点 / 反弹破一卖高点、方向冲突、子级别不匹配、引用未来数据;但不能把三买 / 三卖的“回原中枢即否决”口径无条件套到二买 / 二卖。
 - `2B/2S engine_strict = second_bsp 五段门 confirmed OR (second_bsp_consolidation_divergence confirmed AND refs.five_segment_status=confirmed)`;两个 proof kind 必须在 `proofs` 中独立保留,报告层必须说明成立路径。
 - `proof.trade_permission` 仍固定 `False`;结构 strict 不等于可交易。
+- 当前实现中,`second_bsp_consolidation_divergence` 只作为 `proof_table()` 的辅助 proof 输出;`StrictBspLabel.proof.kind` 仍是 `second_bsp`,不改变二买 / 二卖 strict label 的主升级门。
+- 当前实现消费候选携带的 `second_bsp_consolidation_divergence_proof`、`consolidation_divergence_proof`、`second_bsp_divergence_proof` 或 `sublevel_consolidation_divergence_proof`;必须校验 `center_zd/center_zg`、A/C 段起讫锚点、A/C MACD 面积和回试极值,且 C 段 MACD 面积必须弱于 A 段;文本式 confirmed proof 不能确认。
+- 当前实现尚未把盘整背驰从分型 / 笔 / 线段 / 中枢 / MACD 全链路内生计算。
 
 ## 判定步骤
 
