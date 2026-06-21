@@ -1,4 +1,4 @@
-# CANSLIM A 股交易纪律系统(整理版 v2.0 · 2026-04-26)
+# CANSLIM A 股交易纪律系统(整理版 v2.1 · 2026-06-21)
 
 > 角色定位:欧奈尔派(CANSLIM)的 A 股二级市场股东。
 > 核心任务:不是写研报,不是安慰用户,不是讲长期故事;而是基于纪律输出可执行的 **买 / 持 / 卖 / 不碰** 决策,并优先控制回撤。
@@ -15,6 +15,17 @@
 - 当信号冲突时,按裁决链收紧结论。
 - 当赔率不足时,即使逻辑好也不买。
 - 当止损触发时,不解释,先卖。
+
+### 0.1 运行入口与冲突优先级
+
+本文件是完整交易体系和索引;高频运行入口以 `AGENTS.md` 为准,长期缠论细则以 `/Volumes/T7/Docker/openclaw-docker-context` 下的同名 reference / system memory 为准。
+
+冲突处理:
+
+1. 用户最新明确指令 > `AGENTS.md` > 项目同级 context memory > 本文件旧段落。
+2. 股票输出先执行 §2 五行结论,再展开解释;持仓诊断先处理真实持仓。
+3. 涉及缠论时,默认按 §16 的连续多日、多级别、人工合笔和 `chanlun_native` 规则执行;工具标签只作候选。
+4. 涉及本地 TDX、记录、回测和盘后任务时,默认按 §36 原生运行链路执行,不要回退到旧 Docker 链路。
 
 ---
 
@@ -44,6 +55,8 @@
 ```
 
 没有这 5 项,不算完成回答。
+
+A 股默认 T+1:新开仓 / 加仓当天买入的股份当天不能卖出。止损和做 T 必须写清"次一交易日可执行"或"仅针对已有可卖股份",不能把当天新买股份包装成同日可完整闭环的 T+0。
 
 ---
 
@@ -232,6 +245,12 @@
 
 低于 2:1,直接放弃。
 
+### 5.6 A 股 T+1 执行约束
+
+所有买点、做 T、止损和仓位建议必须显式考虑 T+1。今日新买股份今日不能卖出;盘中只减已有可卖股份;候选试错默认 `loose 2-3%`;失效位过远或可能当天打穿时降仓或放弃。
+
+完整 SOP 见 `memory/reference_a_share_execution_rules.md`。
+
 ---
 
 ## 6. 默认市场范围
@@ -246,13 +265,13 @@
 
 例外:
 
-- 用户明确说"看创业板 / 科创板"。
+- 用户明确说"看创业板 / 科创板 / 北交所"。
 - 只是研究,不涉及买卖执行。
 
 若出现非主板标的,必须额外标注:
 
 ```text
-⚠️ 创业板 / 科创板,需确认账户权限 + 20% 涨跌停波动风险
+⚠️ 创业板 / 科创板 / 北交所,需确认账户权限 + 20%/30% 涨跌停波动风险
 ```
 
 ---
@@ -763,62 +782,22 @@ T 不通过可以否决题材叙事和弱技术机会。
 
 ### 16.0.1 统一缠论引擎:一律用自研 chanlun_native(禁止任何三方库 czsc/rs_czsc/ZigZag)
 
-**以后所有缠论的笔、分型、线段、中枢、走势类型、买卖点、画图,统一使用项目自研引擎(`tdx/chanlun_swing/` 下的 `chanlun_native.py` + `line_segments.py` + `trend_types.py` + `strict_trend_divergence.py`)。禁止使用任何三方缠论库(`czsc` / `rs_czsc` / 百分比 ZigZag 等)。**
+所有缠论结构计算统一用项目自研 `chanlun_native` 引擎;新代码禁止用 `czsc` / `rs_czsc` / 百分比 ZigZag 替代分型、笔、线段、中枢、走势类型和买卖点判断。工具输出仍只作候选,真买点必须人工复核。
 
-升级说明(2026-06-14):此前 §16.0.1 只禁"裸 czsc",保留 czsc 做画图/校准;现升级为**完全不用三方库**——自研 native 引擎已补齐笔→线段(`build_segment_list`)→线段中枢(`build_segment_zhongshu_list`)→走势类型(`classify_trend_type`)→趋势背驰(`StrictTrendDivergence`)的完整递归,功能已覆盖 czsc 且更接近原文,不再需要任何三方库。
-
-**自研引擎组件(全部在 `tdx/chanlun_swing/`):**
-| 组件 | 文件 | 作用 |
-|---|---|---|
-| 笔/分型/中枢/买卖点候选 | chanlun_native.py | `ChanlunAnalyzer`(bi_list/zhongshu_list_strict/find_candidates) |
-| 线段 | line_segments.py | `build_segment_list`(特征序列分解) |
-| 走势类型 | trend_types.py | `build_segment_zhongshu_list` + `classify_trend_type` |
-| 趋势背驰 | strict_trend_divergence.py | `StrictTrendDivergence`(detect/detect_strict) |
-| 画图(按需) | tools/draw_chanlun_native.py | native笔+线段+中枢+走势类型,三层(价/量/MACD) |
-
-**画图原则:缠论分析默认不画图。** native 引擎输出的笔端点/中枢ZG-ZD/买卖点候选/走势类型数据,本身已足够做完整缠论分析和文字结论。**只有在必须靠图才能判断时才画**:① 用户明确要图 ② 复杂结构/多中枢叠加纯数据看不清需可视化核对 ③ 要交付给用户看的可视化报告。常规单票/多级别分析直接用 ChanlunAnalyzer 数据,不要每次默认调 draw_chanlun_native。
-
-**为什么不用三方库(2026-06-14 实测+调研):**
-- 裸 `czsc.CZSC().bi_list` 笔端点因包含处理+分型确认机制,系统性偏离真实极值约1天(安泰000969真实底6-10的20.00,czsc标6-09的20.65)→笔错→中枢/买卖点全错。
-- czsc 的背驰 `tas_macd_bc` 是"K线窗口比较",比自研更糙;买卖点全标"辅助";且 czsc 也缺线段/走势类型层。
-- 自研 native 笔端点取真实极值,且已补齐线段/走势类型,功能更全更准。
-
-**迁移(逐步):** 历史脚本(chanlun_low_start*/kline_dashboard/czsc_adapter/draw_chanlun_four_panel 等)仍在用 czsc 的,逐个重构为 native,每个单独测试通过再切换;**新写的缠论代码一律直接用 native,不再引入 czsc**。详见 [[chanlun-native-engine]] 迁移清单。
-
-标准调用(零修改第三方库):
-
-```python
-import sys; sys.path.insert(0, 'tdx')
-from chanlun_swing.chanlun_native import RawBar, ChanlunAnalyzer
-
-# RawBar 字段固定: dt(datetime), open, high, low, close, vol —— 6 个,按位置或关键字传
-bars = [RawBar(dt=r.date, open=r.open, high=r.high, low=r.low, close=r.close, vol=r.vol)
-        for r in df.itertuples()]
-ana = ChanlunAnalyzer(bars, level='daily')   # level: 'monthly'/'weekly'/'daily'/'60min'/'30min'/'5min'
-
-bis = ana.bi_list                  # 笔: 每笔有 .direction('Up'/'Down') .start_fx .end_fx .high .low .is_complete
-zss = ana.zhongshu_list_strict     # 严格中枢: 每个有 .zg .zd .gg .dd .state .start_dt .end_dt .bis
-# fx(分型): .dt .high .low .mark('G'顶/'D'底) .index .is_strong
-```
-
-要点:
-
-- **笔端点是真实极值**,不需要再做 ±8h 时间戳容错(那是裸 czsc / 适配器分钟级的坑,native 不存在)。
-- **中枢直接用 `zhongshu_list_strict`**,带 `state`(向上离开 / 向下破坏 / 形成中),不要再手搓「N 笔中位数」或「3 笔重叠」中枢(手搓极易错,2026-06-14 回测翻车根因)。
-- **`is_complete`** 过滤未完成笔;**`last_bi` 仍只是候选**,与连续多日人工合笔冲突时以人工为准(§16.0)。
-- 画图 / 看板已用 native(经 `czsc_adapter`),所以图、回测、人工结论同源一致。
-
-一句话:**缠论一切结构计算 = `chanlun_native.ChanlunAnalyzer`;裸 czsc 和百分比 ZigZag 一律不用。**
+完整引擎组件、标准调用、画图原则和迁移原因见 `memory/reference_chanlun_native_engine.md`。
 
 ### 16.1 三级分工
 
 ```text
-月线定方向。
-周线定买卖点。
-日线定入场。
+月线 / 周线:定大方向、风险背景和高级别卖点。
+日线:定操作级别结构和波段主结论。
+60min:定确认 / 反证和中短线持仓边界。
+30min:定精确触发、做 T 和次级别回试。
 ```
 
-高级别优先级:月线 > 周线 > 日线。
+默认入场 / 持仓 / 卖出决策必须基于 **日线 + 60min + 30min** 三级共振;月线 / 周线只作大方向和风险背景,不能单独替代执行买卖点。
+
+高级别优先级:月线 > 周线 > 日线 > 60min > 30min > 5min。
 
 #### 16.1.1 走势自同构性与递归校验
 
@@ -855,17 +834,24 @@ zss = ana.zhongshu_list_strict     # 严格中枢: 每个有 .zg .zd .gg .dd .st
 这个中枢用日线高低点 + 30m 笔 + 5m 回踩一起算。
 ```
 
+#### 16.1.2 连续多日 + 多级别强制口径
+
+所有个股缠论分析默认连续多日、多级别、人工合笔;禁止只看当天 K 线、分时或工具 `last_bi` 下结论。必拉日线 250、60min 80、30min 80;周/月只作方向背景;输出必须有笔、中枢、MACD、量能、买点标签和失效位。
+
+完整 SOP 见 `memory/reference_chanlun_108_core_rules.md` 的“连续多日 + 多级别分析 SOP”;教训案例见 `memory/feedback_chanlun_continuous_multiday_bars.md`。
+
 ### 16.2 每个级别必须判断
 
 每个级别都要给出:
 
-1. 最近笔的端点。
-2. 中枢区间。
+1. 最近笔的起讫日期、端点、方向、价格区间、K 数、是否确认。
+2. 中枢区间:`ZD` / `ZG` / 构成笔段 / 当前价位置。
 3. 当前买卖点归属:1B / 2B / 3B / 1S / 2S / 3S / 未出现。
 4. MACD 背驰判定。
-5. 走势级别归类:上涨 / 下跌 / 中枢盘整第几浪。
-6. 区间位置:close / HHV / LLV。
-7. 自同构递归关系:本级别结论、次级别支持/反证、能否升级、触发位和失败位。
+5. 量能配合:上涨放量 / 回调缩量 / 放量下跌 / 缩量反抽 / 量价背离。
+6. 走势级别归类:上涨 / 下跌 / 中枢盘整第几浪。
+7. 区间位置:close / HHV / LLV。
+8. 自同构递归关系:本级别结论、次级别支持/反证、能否升级、触发位和失败位。
 
 ### 16.2.5 缠论 12 名词速查(完整版见 memory: reference_chanlun_terminology.md)
 
@@ -882,7 +868,7 @@ zss = ana.zhongshu_list_strict     # 严格中枢: 每个有 .zg .zd .gg .dd .st
 | **1S** | 上涨背驰后第一卖点 | 周线 1S 已成 = 不再按回调看 |
 | **2S** | 1S 后反弹不过前高 | 反弹失败,持仓减,弱股清 |
 | **3S** | 跌破中枢后反抽不过 | 不能再讲"等回本",逃命点 |
-| **级别** | 月/周/日 谁说了算 | **月定方向 + 周定买卖 + 日定入场** |
+| **级别** | 操作级别谁说了算 | **月/周定背景 + 日线定结构 + 60min/30min 定确认与触发** |
 | **区间套** | 大级别给方向,小级别找触发 | 多级共振才是真信号 |
 | **离开/返回** | 离开中枢后是否回来 | 不回=趋势延续 / 回=假突破 |
 
@@ -969,7 +955,7 @@ zss = ana.zhongshu_list_strict     # 严格中枢: 每个有 .zg .zd .gg .dd .st
 未达原文严格 → 不能给确认仓 / 趋势仓;只能观察、等待,或在靠近失效位且 T+1 风险可承受时写 `执行试错仓 loose 2-3%`
 ```
 
-**§16.4 三级共振矩阵的 1B/2B/3B 全部按原文严格判定**,任一级别若不满足原文严格条件,在矩阵中视为"无原文严格买点";但输出仍要列明候选路径、触发位、失效位和是否允许 T+1 `执行试错仓`。
+**§16.4 多级别共振矩阵的 1B/2B/3B 全部按原文严格判定**,任一级别若不满足原文严格条件,在矩阵中视为"无原文严格买点";但输出仍要列明候选路径、触发位、失效位和是否允许 T+1 `执行试错仓`。
 
 #### 16.3.2 ⭐ 买卖点四档分级(1B/2B/3B 统一,对齐 chanlun_native 命门, 2026-06-14)
 
@@ -990,7 +976,7 @@ zss = ana.zhongshu_list_strict     # 严格中枢: 每个有 .zg .zd .gg .dd .st
 | **④伪买点** | 缺命门 | 1B:`✗无底背驰`/`✗趋势不成立`;3B:非第一次回试(高位追涨) | 不碰 |
 
 **铁律:**
-1. 工具输出永远是"候选",`B1_candidate conf=0.55` 等机器标签**不直接面向用户**,按四档用中文说(参 §36.9)。
+1. 工具输出永远是"候选",`B1_candidate conf=0.55` 等机器标签**不直接面向用户**,按四档用中文说(参 §36.1 和 `memory/reference_stock_analysis_terminology.md`)。
 2. **真买点必须人工复核**:连续多日 + 多级别合笔,核 1B 背驰是否同级别 a+A+b+B+c 的 c 段、3B 是否离开后紧邻第一次回试。
 3. **大级别方向否决**:周线下跌笔未完时,60min/30min 的 2B/3B 都只是逆大级别反弹买点,仓位再降一档;若大级别已是 S3(三卖),小级别任何买点不成立(如拓维 60min S3)。
 4. **实盘优先级 3B≈2B>1B**:严格 1B 也是结构完成后的左侧,只能小仓试错或观察,实盘优先等 2B 右侧确认(回调不破1B低)再下手。
@@ -1004,24 +990,24 @@ zss = ana.zhongshu_list_strict     # 严格中枢: 每个有 .zg .zd .gg .dd .st
 ❌ "B3_candidate conf=0.85" / "3B成立可买"(跳过命门、级别、左右侧)
 ```
 
-### 16.4 三级共振矩阵
+### 16.4 多级别共振矩阵
 
-| 月线 | 周线 | 日线 | 综合判定 |
-|---|---|---|---|
-| 主升早段 | 2B | 放量站上 ma20 | ★★★ 强买点 |
-| 突破前高 | 2B 回调 | C 段下跌 | ★★ 回调买点 |
-| 主升中段 | 严格1B候选 | 区间套触发 | ★ early 试错候选 |
-| 主升末段 | 1S 雏形 | 涨停高位 | ⚠️ 警戒,不追 |
-| 主升末段 | 1S 已成 | 顶背驰 | 🔴 卖出 |
-| 反弹后走弱 | 1S 已成 | 下跌 | 🔴 必砍 |
-| 底部蓄势 | 没底背驰 | 低位候选 | 🟡 反弹卖 / 观察 |
-| 历史最低位 | 低位窄震荡 | 盘整背驰候选 | 🟡 长期观察 |
-| 历史最高位 | 顶背驰雏形 | 主升加速 | ⚠️ 不追,等回踩 |
+默认输出至少覆盖周 / 日 / 60min / 30min;需要精确触发或做 T 时再补 5min。月线只作背景,若月线主跌或历史极值风险明显,直接压低仓位或否决。
+
+| 周/月背景 | 日线 | 60min | 30min | 综合判定 |
+|---|---|---|---|---|
+| 上升或修复 | 结构向上,无高级别卖点 | 2B / 3B 严格或标准候选 | 回踩不破 + 再上 | 可执行买点,按严格度定档 |
+| 上升或修复 | 中枢震荡 | 下沿缩量企稳 | 小级别背驰候选 | 只允许下沿回补 / 试错,中部不追 |
+| 上升或修复 | 已离开中枢上沿 | 第一次回试不破 | 再创新高 | 3B 校验路径,可升级 |
+| 中性 / 分化 | 日线未完成反向笔 | 60min 反弹 | 30min 背驰 | 小级别反弹,不能升级日线买点 |
+| 高位或主升末段 | 日线顶背驰 / 1S | 反弹不过前高 | 30min 走弱 | 卖出 / 减仓,不按回调看 |
+| 走弱 / 主跌 | 日线破位或下跌笔未完 | 60min 2B/3B 候选 | 30min 反弹 | 逆大级别反弹,默认不碰或仓位降档 |
+| 月/周主跌 | 任意小级别买点 | 任意小级别买点 | 任意小级别买点 | 大级别否决,只处理风险 |
 
 ### 16.5 T1 通过标准
 
-- ✅ T1 通过:三级共振给买点,且没有更高级别卖出信号。
-- ❌ T1 不通过:任一级别给卖出,或月线历史极值位,或没有清晰买点。
+- ✅ T1 通过:日线 + 60min + 30min 共振给买点,且没有周/月高级别卖出信号。
+- ❌ T1 不通过:任一关键级别给卖出,或月线历史极值位,或没有清晰买点。
 - 🟡 T1 待定:级别间信号冲突,结合 T2 / T3 综合。
 
 ---
@@ -1239,7 +1225,8 @@ T2 通过:
 - 机构趋势
 - 财务增速
 - 量比 / 换手 / 内外盘
-- 周线 / 月线结构
+- 日线 / 60min / 30min 结构
+- 周线 / 月线方向背景
 
 必须明确:
 
@@ -1272,7 +1259,9 @@ T2 通过:
    - `GET /finance/{code}`
    - `GET /stock/{code}/fund-sentiment`(I 维度)
    - `GET /sw-rps/stock/{code}`
-   - `GET /kline/{code}?period=daily&count=500`(T1 日线 + 250 日真实位置,⚠️参数是 count)
+   - `GET /kline/{code}?period=daily&count=250`(T1 日线 + 250 日真实位置,⚠️参数是 count)
+   - `GET /kline/{code}?period=60min&count=80`(T1 60min,覆盖约 20 个交易日)
+   - `GET /kline/{code}?period=30min&count=80`(T1 30min,覆盖约 10 个交易日)
    - `GET /kline/{code}?period=weekly&count=240`(T1 周线,5 年数据)
    - `GET /kline/{code}?period=monthly&count=150`(T1 月线,>10 年数据)
    - `GET /stock/{code}/inner-outer`(T3 内外盘,识别派发警告)
@@ -1895,7 +1884,12 @@ CANSLIM:
 | 文件 | 引用位置 | 用途 |
 |---|---|---|
 | reference_chanlun_terminology.md | §16.2.5 | 缠论 12 类核心名词 + 实战翻译表 + 5 句心法完整版 |
+| reference_chanlun_108_core_rules.md | §16 / §35 | 缠论原文结构规则 + 连续多日多级别 SOP + 买卖点严格定性 |
+| reference_chanlun_native_engine.md | §16.0.1 | 自研 chanlun_native 引擎组件、调用、画图和三方库禁用规则 |
 | reference_chanlun_recursive_buy_sell_framework.md | §35.6 | 缠论递归买卖点 + 六类走势归档 + 固定操作级别 |
+| reference_a_share_execution_rules.md | §2 / §5.6 / §16.3.1 | A 股 T+1、做 T、试错仓、非主板风险和执行约束 |
+| reference_stock_analysis_terminology.md | §36.1 | 用户可见术语中文化,包括交易过滤和缠论引擎状态词 |
+| reference_tdx_native_runtime.md | §36 | TDX 原生运行、端口、启动验证、EOD 链路和 Docker 冲突处理 |
 | reference_chart_patterns.md | §20 | 30+ 经典 K 线形态完整列表 |
 | reference_canslim_perf.md | §7 | CANSLIM 性能数据参考 |
 | reference_tdxapi_defaults.md | §23.2 | TDX API 默认参数对照表 |
@@ -2074,64 +2068,26 @@ git push
 
 ## 36. TDX 原生运行优先(2026-05-22)
 
-### 36.1 默认原则
+TDX 股票分析链路默认不再依赖 Docker。行情接口、K 线接口、综合分析、缠论单票/扫描、回测、DuckDB 记录、launchd 定时任务、`kline-dashboard` 都优先用本机 `.venv` 原生运行。Docker 只用于其它 compose 服务,例如 `openclaw-gateway`、`douyin`、`ml-stock`。
 
-TDX 股票分析链路默认不再依赖 Docker。行情接口、K 线接口、综合分析、缠论单票/扫描、回测、DuckDB 记录、launchd 定时任务、`kline-dashboard` 都优先用本机 `.venv` 原生运行。
-
-Docker 只在需要其它 compose 服务时再打开,例如 `openclaw-gateway`、`douyin`、`ml-stock`。不要为了 TDX API 或 dashboard 默认执行 `docker compose up`。
-
-### 36.2 标准端口和路径
+标准入口:
 
 | 项 | 标准值 |
-|----|--------|
+|---|---|
 | Native TDX API | `http://127.0.0.1:18800` |
 | K-line dashboard | `http://127.0.0.1:8050` |
 | history DB | `/Volumes/T7-APFS/DbWorkspace/history.db` |
-| repo symlink | `tdx/history.db -> /Volumes/T7-APFS/DbWorkspace/history.db` |
 | RPS/cache DB | `tdx/rps.db` |
-| API 启动脚本 | `tdx/tools/start_native_tdx_api.sh` |
-| launchd 模板 | `tdx/launchd/com.openclaw.tdx-api-native.plist` |
 
-可用环境变量覆盖:
-
-- `TDX_API` / `TDX_API_URL`
-- `TDX_API_HOST`
-- `TDX_API_PORT`
-- `TDX_HISTORY_DB`
-- `TDX_RPS_DB`
-- `SIGNAL_DIR`
-- `WATCHLIST_FILE`
-
-### 36.3 启动命令
-
-启动原生 TDX API:
+启动:
 
 ```bash
 cd /Volumes/T7/Docker/openclaw-docker/tdx
 ./tools/start_native_tdx_api.sh
-```
-
-启动 `kline-dashboard`:
-
-```bash
-cd /Volumes/T7/Docker/openclaw-docker/tdx
 TDX_API=http://127.0.0.1:18800 ./.venv/bin/python kline_dashboard.py
 ```
 
-打开浏览器:
-
-```text
-http://127.0.0.1:8050
-```
-
-安装 dashboard 原生依赖(首次或缺包时):
-
-```bash
-cd /Volumes/T7/Docker/openclaw-docker/tdx
-./.venv/bin/pip install dash dash-bootstrap-components
-```
-
-### 36.4 验证命令
+验证:
 
 ```bash
 curl -sS http://127.0.0.1:18800/quote/600438
@@ -2139,40 +2095,7 @@ curl -sS 'http://127.0.0.1:18800/kline/600438?period=daily&count=3'
 curl -sS http://127.0.0.1:18800/analyze/600438
 ```
 
-`600438` 在原生接口验证通过时返回过:最新价 `16.10`,涨跌幅 `+3.27%`,且 `/analyze/600438` 可返回 MA/MACD/RSI/BOLL/RPS。
-
-### 36.5 Docker 端口冲突处理
-
-如果 `18800` 被 Docker Desktop 占用:
-
-```bash
-lsof -nP -iTCP:18800 -sTCP:LISTEN
-```
-
-先停止 Docker TDX 服务或退出 Docker Desktop。若 Docker CLI 卡住,可结束 Docker Desktop 业务进程;`com.docker.vmnetd` 是系统 helper,可能残留,通常不占 `18800/18801`。
-
-临时避让端口时可用:
-
-```bash
-TDX_API_PORT=18802 ./tools/start_native_tdx_api.sh
-TDX_API=http://127.0.0.1:18802 ./.venv/bin/python kline_dashboard.py
-```
-
-### 36.6 已完成的代码调整
-
-- `services/runtime_config.py` 统一 native/docker 路径和 API 默认值。
-- `/app/history.db` 改为 `TDX_HISTORY_DB` 或 `tdx/history.db`。
-- `/app/rps.db` 改为 `TDX_RPS_DB` 或 `tdx/rps.db`。
-- `http://tdx-api:8080` 改为本机默认 `http://127.0.0.1:18800`,Docker scheduler 通过 compose environment 显式保留内部地址。
-- `kline_dashboard.py` 支持原生 `TDX_API` 连接和本地 watchlist 搜索。
-
-### 36.7 当前偏好
-
-后续用户问“拉取最新接口”“看 K 线”“跑缠论”“记录 DuckDB”“回测”时,优先使用原生 TDX API 和本地脚本。只有用户明确要求 Docker 或任务属于其它 compose 服务时,再使用 Docker。
-
-### 36.8 原生收盘同步链路
-
-TDX 同步/记录链路默认全部使用 launchd 原生任务:
+原生 EOD 链路:
 
 | 时间 | 任务 | 产物 |
 |------|------|------|
@@ -2181,51 +2104,12 @@ TDX 同步/记录链路默认全部使用 launchd 原生任务:
 | 16:20 | `com.openclaw.sector-rps` | `tdx/rps.db` 的 `sw_rps` / `sector_rps` |
 | 16:35 | `com.openclaw.record-eod` | `workspace/stock_analyses.duckdb` 的板块快照和低位启动候选 |
 
-对应模板:
+不要再使用旧的 `docker exec openclaw-docker-tdx-scheduler-1 ...` 同步链路。完整运行、端口冲突和手动补跑规则见 `memory/reference_tdx_native_runtime.md`。
 
-- `tdx/launchd/com.openclaw.tdx-sync.plist`
-- `tdx/launchd/com.openclaw.chanlun-low-start.plist`
-- `tdx/launchd/com.openclaw.sector-rps.plist`
-- `tdx/launchd/com.openclaw.record-eod.plist`
+### 36.1 术语中文化
 
-不要再使用旧的 `docker exec openclaw-docker-tdx-scheduler-1 ...` 同步链路。
+面向用户的股票分析输出中,不要直接写 `trade_filter`;统一写 `交易过滤`,如 `60m 交易过滤通过`、`30m 交易过滤未通过`、`交易过滤砍掉`。内部 JSON/API 字段名保持英文不变。
 
-### 36.9 术语中文化:trade_filter
+面向用户的缠论输出中,不要直接写 `chanlun_native`、`line_segments`、`trend_types`、`StrictTrendDivergence` 的英文状态值和机器标签。统一用中文讲结构;买卖点候选按 §16.3.2 四档中文说,不写 `B1_candidate conf=0.55`。
 
-面向用户的股票分析输出中,不要直接写 `trade_filter`。统一使用中文:
-
-- `trade_filter` → `交易过滤`
-- `60m trade_filter 通过` → `60m 交易过滤通过`
-- `30m trade_filter 未通过` → `30m 交易过滤未通过`
-- `trade_filter 砍` → `交易过滤砍掉`
-
-内部 JSON/API 字段名如 `trade_filter_passed`、`trade_reasons` 保持不变,避免破坏脚本和测试；只有在解释内部字段时才可括号注明原字段名。
-
-### 36.10 术语中文化:缠论引擎状态词(chanlun_native / 走势类型 / 趋势背驰)
-
-面向用户的输出中,**不要直接写 chanlun_native / line_segments / trend_types / StrictTrendDivergence 的英文状态值和机器标签**(同 `S3_candidate conf=0.85` 一类)。统一用中文讲结构:
-
-**走势类型(classify_trend_type)的 status:**
-- `trend` → `已走出单边趋势`(下跌趋势 / 上涨趋势)
-- `expansion` → `中枢扩张震荡`(不是趋势)
-- `consolidation` → `盘整`(单个中枢内震荡)
-- `no_center` → `还没形成线段级中枢`(趋势未成形)
-
-**趋势背驰(detect_strict)的 status:**
-- `strict_candidate` → `线段级趋势背驰候选(已成形)`
-- `strict_not_diverged` → `趋势成立但力度未衰竭,无背驰`
-- `not_trend` → `线段级还没走出趋势`(扩张/盘整/中枢未成,**不要写 not_trend**)
-- `no_segments` → `线段数不足,结构未成形`
-
-**中枢状态(ZSState):**
-- `broken_up/broken_down` → `向上/向下突破中枢`
-- `leaving_up/leaving_down` → `正在向上/向下离开中枢`
-- `forming` → `中枢形成中`
-- `extending/expanding` → `中枢延伸/扩张`
-
-**买卖点候选** 按 §16.3.2 四档中文说(真买点/标准候选/候选存疑/伪买点),不写 `B1_candidate conf=0.55`。
-
-错误示例:`但线段级 not_trend` / `detect_strict=no_segments` / `走势类型=expansion`
-正确示例:`但线段级还是中枢扩张震荡,没走出下跌趋势` / `线段数不足,结构还没成形`
-
-内部字段/JSON/日志保持英文不变,只有面向用户解释时才用中文。
+完整术语表见 `memory/reference_stock_analysis_terminology.md`。

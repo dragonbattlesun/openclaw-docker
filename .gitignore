@@ -39,6 +39,8 @@ memory/*
 !memory/reference_tdx_native_runtime.md
 !memory/feedback_chanlun_continuous_multiday_bars.md
 !memory/reference_stock_analysis_terminology.md
+!memory/reference_a_share_execution_rules.md
+!memory/reference_chanlun_native_engine.md
 ml/
 qqbot/
 skills/
