@@ -1,60 +1,62 @@
-# 通达信板块同步 Reference
+# 板块同步与成分股 Reference
 
-Date: 2026-06-21
+Date: 2026-06-21(2026-06-21 修订:删除 block.dat,改用东财成分)
 
 ## 适用场景
 
-- 同步通达信板块名称和板块 → 成分股映射(概念 / 风格 / 主题 / 880 指数 / 881 申万)。
-- 板块归属查询、板块成分股扫描、需要"某股属于哪些板块"的任务。
-- 改动 `sync_tdx_meta.py` 或新增板块元数据同步的任务。
+- 板块名称同步、板块 → 成分股、个股 → 所属板块查询。
+- 板块 / 行业 RPS 计算时的成分来源疑问。
+- 改动 `sync_tdx_meta.py` / `sync_board_members.py` 或新增板块元数据同步的任务。
 
-## 核心定义
+## 核心结论:三个数据源各管各的,不要混用
 
-统一入口 `tdx/sync_tdx_meta.py`:
+| 需求 | 数据源 | 工具 / 表 | 截断? |
+|---|---|---|---|
+| 板块名称(880 指数 / 881 申万) | 通达信 + 静态映射 | `sync_tdx_meta.py` → `sector_names` / `sw_industry_names` | 无 |
+| 个股 → 申万一级行业归属 | akshare `index_component_sw` | `sw_rps.py` → `sw_stock_industry` | 无 |
+| 个股 → 概念 / 板块,板块全成分 | **东财** | `sync_board_members.py` → `stock_board_members` | 无 |
+| **板块 / 行业 RPS** | **申万行业指数K线** | `sw_rps.py`(指数自带全成分) | **无,不依赖成分穷举** |
+| ~~概念/风格/主题板块成分~~ | ~~通达信 block.dat~~ | **已删除(400 截断)** | — |
+
+## block.dat 已删除(2026-06-21)
+
+`sync_block_classification` 函数、`block_concept/style/theme` 三表、BlockReader import 全部删除(tdx@925c032)。
+
+根因:**通达信 block.dat 格式每板块固定 2800 字节 = 400 只硬截断**(`BlockReader` 解析时 `pos = block_stock_begin + 2800`,2800/7字节=400)。这是文件格式死规定,不是读取 bug——文件里根本没存第 401 只之后的数据,改读取层无解。超过 400 只的大板块(光伏 / 新能源车等)成分永远不全。
+
+且三表无真实消费方(只在摘要打印里被提名),删除安全。
+
+## 关键:RPS 不依赖 block.dat,400 截断不影响 RPS
+
+- **板块 / 行业 RPS** = `sw_rps.py` 取**申万行业指数(881xxx)本身的 K 线**算 N 日涨幅,31 个行业指数之间排名。指数由申万官方编制、自带全部成分,**不需要把成分股一只只加起来**,因此与 block.dat 的 400 截断完全无关。
+- **个股 RPS** = 全市场个股各自算 N 日涨幅再排名,也不碰板块成分。
+- 成分映射 `sw_stock_industry` 仅用于"个股属于哪个行业"反查,走 akshare 申万官方成分,非 block.dat。
+
+## 当前板块同步入口
 
 ```bash
-cd /Volumes/T7/Docker/openclaw-docker
-tdx/.venv/bin/python tdx/sync_tdx_meta.py        # 全量同步(5 步)
+# 1) 板块名称(880/881)+ 股票名 + 行业归属
+tdx/.venv/bin/python tdx/sync_tdx_meta.py
+
+# 2) 个股↔概念/板块映射(东财,无截断,856 板块 / ~2091 只热门股 / 双向查)
+tdx/.venv/bin/python tdx/sync_board_members.py            # 全量入库 stock_board_members
+tdx/.venv/bin/python tdx/sync_board_members.py --stock 603009  # 某股所属板块
+tdx/.venv/bin/python tdx/sync_board_members.py --board CPO概念   # 某板块成分股
 ```
 
-`main()` 编排 5 步:股票名 → 行业分类 → 880 名称 → 881 申万 → block 分类。板块相关 3 个函数(写 history.db):
-
-| 函数 | 数据源 | 表 | 内容 |
-|---|---|---|---|
-| `sync_sector_names` | 静态映射 `services.sector_names` | `sector_names` | 880xxx 板块指数名,~675 个(market/region/industry/concept) |
-| `sync_sw_industry_names` | pytdx `security_list` | `sw_industry_names` | 881xxx 申万行业名 |
-| `sync_block_classification` | 通达信 block*.dat | `block_concept/style/theme` | 板块 → 成分股映射 |
-
-核心 API:`api.get_block_info(fname, offset, 0x7530)` 分块下载三个文件:
-
-- `block.dat` → concept(概念,~98 板块 / 16694 映射)
-- `block_fg.dat` → style(风格,~153 / 22027)
-- `block_gn.dat` → theme(主题,~270 / 40794)
-
-下载后写 `/tmp` 临时文件 → `BlockReader().get_df()` 解析 → 入库 `block_{source}`(先 DELETE 再 INSERT)。
-
-## 判定步骤
-
-1. 要板块名称 / 成分映射,跑 `sync_tdx_meta.py`,不要另写 block.dat 解析。
-2. 880xxx 名称只能用静态映射,不能尝试从 block_zs.dat 提取(见教训案例)。
-3. 881xxx 若某轮 security_list 没返回,跳过本轮沿用旧表,不清空。
-4. 区分"板块名称"和"板块强度 / 资金":名称在本链路;RPS / 资金流是另两条链路。
-
-## 输出要求
-
-- 涉及板块归属时说明数据来自 history.db 的 `sector_names / sw_industry_names / block_concept/style/theme`,以及最近同步日期。
-- 不要把板块名称同步和板块 RPS / 资金流混为一谈。
+`sync_board_members.py` 数据源东财 `RPT_F10_CORETHEME_BOARDTYPE`,原生直连 `datacenter-web.eastmoney.com`(通;`push2/push2his` 被 TLS 切,不用)。东财 filter 不支持 `like`,模糊查在本地 SQLite 用 LIKE。覆盖 ~2091 只有题材的股(F10 精选,非全市场穷举)。
 
 ## 与其他链路的区分
 
-- 板块名称 + 成分 = `sync_tdx_meta.py`(本文件),launchd `com.openclaw.tdx-sync`(每日 15:30)。
+- 板块名称 = `sync_tdx_meta.py`,launchd `com.openclaw.tdx-sync`(每日 15:30)。
 - 板块 RPS = `com.openclaw.sector-rps`(16:20)→ `run_sector_rps_daily.py` → rps.db。
 - 板块资金流 = §23.8 `save_sector_capital_flow.py`(同花顺)/ §23.9 `save_sw_money_flow.py`(东财申万),见 reference_data_sync_chain。
 
 ## 教训案例
 
-880xxx 板块指数名称曾尝试从 `block_zs.dat` 提取,但该文件装的是「股票 → 指数成分」映射(如 600519 → 沪深300),根本没有 880xxx 行,导致 0 条入库。pytdx 也不暴露 880xxx 名称字段。最终只能用 `services.sector_names` 静态映射兜底(~675 条)。
+1. 880xxx 名称曾试图从 `block_zs.dat` 提取,但该文件装的是「股票→指数成分」(600519→沪深300),没有 880xxx 行;pytdx 也不暴露 880 名称字段,只能用 `services.sector_names` 静态映射兜底(~675 条)。
+2. block.dat 每板块 400 只硬截断(2800 字节格式限制),读取层无法解决,应换数据源(东财)。RPS 用申万指数本身,从一开始就没踩这个坑。
 
 ## 优先级
 
-板块元数据同步统一走 `sync_tdx_meta.py`;写库走 history_db repository,单进程写 APFS(见 reference_history_db_repository / feedback_exfat_sqlite_corruption)。
+板块名称走 `sync_tdx_meta.py`,板块成分走 `sync_board_members.py`(东财);不要再用 block.dat。写库走 history_db repository,单进程写 APFS(见 reference_history_db_repository / feedback_exfat_sqlite_corruption)。
