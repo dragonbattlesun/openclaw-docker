@@ -27,6 +27,16 @@
 - 一买 / 一卖最终趋势背驰 proof 使用 `StrictTrendDivergence.detect_strict()` 从本级别严格笔重建线段、线段中枢和走势类型;`len(structure.centers) >= 2` 只是趋势背驰可见性前置门,不是最终 proof。
 - 二买 / 二卖当前 recursive proof 只覆盖前置严格一买 / 一卖 + 直接次级别五段门 + 不破前点主路径;盘整背驰确认型二买 / 二卖应作为后续独立 `second_bsp_consolidation_divergence` proof 分支实现,不能直接放宽五段门。
 
+二买 / 二卖盘整背驰 proof 设计:
+
+- `second_bsp_consolidation_divergence` 只是严格 2B/2S 的另一条 proof 路径,不是新买卖点类型。
+- strict 2B 必须同时满足:前置同级别严格 1B proof confirmed、直接次级别匹配、只取前置 1B 锚点之后到当前候选之前的窗口、该窗口是第一次回调、第 61 课五段直接次级别骨架 confirmed、回调内部有可比较盘整结构、A/C 段力度背驰、回调后有反弹确认笔、回调低点不破前置 1B 极值、`as_of` 无未来数据。
+- strict 2S 完全镜像:前置严格 1S、第一次直接次级别反弹、第 61 课五段直接次级别骨架 confirmed、顶部盘整背驰、反弹后有回落确认笔、反弹高点不破前置 1S 极值。
+- MACD 只作结构背驰辅助 proof;缺 MACD 或 A/C 不可比时降级 candidate,不能直接 invalid。
+- 硬反证包括:非第一次回调 / 反弹、A/C 不背驰、回调破一买低点 / 反弹破一卖高点、方向冲突、子级别不匹配、引用未来数据;但不能把三买 / 三卖的“回原中枢即否决”口径无条件套到二买 / 二卖。
+- `2B/2S engine_strict = second_bsp 五段门 confirmed OR (second_bsp_consolidation_divergence confirmed AND refs.five_segment_status=confirmed)`;两个 proof kind 必须在 `proofs` 中独立保留,报告层必须说明成立路径。
+- `proof.trade_permission` 仍固定 `False`;结构 strict 不等于可交易。
+
 ## 判定步骤
 
 1. 先确定操作级别:
