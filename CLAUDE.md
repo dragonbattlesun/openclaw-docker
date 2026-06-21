@@ -1960,6 +1960,7 @@ CANSLIM:
 | feedback_a_share_execution_constraints.md | A股 T+1+涨跌停+滑点+手续费让回测理论值打 75% 折扣, 单仓须降到 4% 防跌停跳空(对应 §13.3) |
 | feedback_segmented_profit_taking.md | 分段止盈 +15%/+25%/+40% 比单一 +40% Sharpe +22%, 让赢家跑同时锁早期收益(对应 §13.3) |
 | feedback_chanlun_engineering_label.md | 原文严格 1B/2B/3B 只做定性标准, 候选需单独标注并按 A 股 T+1 折扣给执行试错仓(对应 §16.3.1) |
+| feedback_chanlun_chart_tool_and_levels.md | 画缠论图首选 draw_chanlun_native.py(多级别叠加:笔/线段/笔中枢/线段中枢/30min中枢投影);§16.1.1 第5条"禁止混级别"是禁拼买点不是禁一张图显示多级别;用线段级中枢判盘整/趋势 |
 
 ### 33.3 工具链(workspace/tools/)
 
