@@ -6,4 +6,7 @@
 - [A-share execution rules](memory/reference_a_share_execution_rules.md): A 股 T+1、涨跌停、做 T、候选试错仓、非主板权限和 20%/30% 波动风险的稳定执行 SOP。
 - [Stock analysis terminology](memory/reference_stock_analysis_terminology.md): 面向用户输出时把内部机器标签转成中文,包括 `trade_filter` -> `交易过滤` 以及缠论引擎状态词。
 - [TDX native runtime](memory/reference_tdx_native_runtime.md): TDX API、K-line dashboard、DuckDB 记录、回测和 EOD 链路默认原生运行;记录端口、启动、验证、Docker 冲突处理和 launchd 同步链。
+- [CANSLIM A-share reference](memory/reference_canslim_a_share.md): CANSLIM A 股阈值、A/B/C/D 分类、M 仓位上限、early / 突破确认、I 四项评分和 T1/T2/T3 技术口径。
+- [Stock analyses DB](memory/reference_stock_analyses_db.md): 单票分析 DuckDB + Markdown 双写、7 日内历史结论对比、板块快照、低位启动扫描、EOD 记录和资金流表。
+- [TDX toolchain](memory/reference_tdx_toolchain.md): TDX 原生 API 调用顺序、EOD launchd 链、扫描脚本、记录工具和相关 reference 索引。
 - [Agent note writing SOP](memory/reference_agent_note_writing_sop.md): 用户要求整理笔记、写进规则或沉淀交易教训时,统一按适用场景、定义、步骤、输出、正反例、优先级和案例整理;缠论笔记必须补齐级别、笔、线段、中枢、MACD、量能、T+1 和失效位。

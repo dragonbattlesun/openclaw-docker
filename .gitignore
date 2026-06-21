@@ -41,6 +41,9 @@ memory/*
 !memory/reference_stock_analysis_terminology.md
 !memory/reference_a_share_execution_rules.md
 !memory/reference_chanlun_native_engine.md
+!memory/reference_canslim_a_share.md
+!memory/reference_stock_analyses_db.md
+!memory/reference_tdx_toolchain.md
 ml/
 qqbot/
 skills/
