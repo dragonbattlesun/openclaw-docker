@@ -26,7 +26,10 @@ ml-stock
 | K-line dashboard | `http://127.0.0.1:8050` |
 | History DB | `/Volumes/T7-APFS/DbWorkspace/history.db` |
 | Repo symlink | `tdx/history.db -> /Volumes/T7-APFS/DbWorkspace/history.db` |
+| History DB repository | `tdx/services/history_db.py` |
 | RPS/cache DB | `tdx/rps.db` |
+
+`history.db` / K 线表读写统一走 `tdx/services/history_db.py`:连接、WAL / busy_timeout、schema、表名映射、索引和 `as_of` 截断不要散落到业务模块。完整纪律见 `memory/reference_history_db_repository.md`。
 
 ## 启动与烟测
 
@@ -130,6 +133,7 @@ tdx/.venv/bin/python workspace/tools/record_eod.py [YYYY-MM-DD] [--market-state 
 ## 相关参考
 
 - `memory/reference_tdx_native_runtime.md`:端口、启动、Docker 冲突、launchd 标准链路。
+- `memory/reference_history_db_repository.md`:history.db / K 线 repository、标准表和严格 3B/3S 次级别数据边界。
 - `memory/reference_stock_analyses_db.md`:DuckDB 表、保存、查询、板块资金流和回归检验。
 - `memory/reference_chanlun_native_engine.md`:缠论 native 引擎、画图和工具标签边界。
 - `memory/reference_canslim_a_share.md`:交易裁决、仓位、CANSLIM 阈值和 I/T 口径。

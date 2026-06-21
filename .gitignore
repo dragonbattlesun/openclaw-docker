@@ -34,16 +34,6 @@ flows/
 identity/
 logs/
 media/
-memory/*
-!memory/reference_chanlun_recursive_buy_sell_framework.md
-!memory/reference_tdx_native_runtime.md
-!memory/feedback_chanlun_continuous_multiday_bars.md
-!memory/reference_stock_analysis_terminology.md
-!memory/reference_a_share_execution_rules.md
-!memory/reference_chanlun_native_engine.md
-!memory/reference_canslim_a_share.md
-!memory/reference_stock_analyses_db.md
-!memory/reference_tdx_toolchain.md
 ml/
 qqbot/
 skills/
@@ -51,6 +41,13 @@ tasks/
 workspace/
 
 # 注意:tdx/ 是 git submodule,不在这里 ignore
+
+# ===========================
+# memory/ 下的大二进制不入库(只跟踪 .md 文本)
+# ===========================
+memory/chanlun_pdf_figures/
+memory/main.sqlite
+memory/*.sqlite
 
 # ===========================
 # CLAUDE.md 历史快照副本(只保留主 CLAUDE.md 即可)

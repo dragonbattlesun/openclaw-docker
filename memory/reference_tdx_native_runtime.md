@@ -10,6 +10,7 @@ TDX stock-analysis workflows should run natively by default, without Docker.
 - K-line dashboard: `http://127.0.0.1:8050`
 - History DB: `/Volumes/T7-APFS/DbWorkspace/history.db`
 - Repo symlink: `tdx/history.db -> /Volumes/T7-APFS/DbWorkspace/history.db`
+- History DB repository: `tdx/services/history_db.py`
 - RPS/cache DB: `tdx/rps.db`
 
 ## Start Commands
@@ -38,6 +39,7 @@ curl -sS http://127.0.0.1:18800/analyze/600438
 - Docker is only needed for unrelated compose services such as `openclaw-gateway`, `douyin`, or `ml-stock`.
 - If `18800` is occupied by Docker, stop Docker Desktop or use temporary port `18802`.
 - `com.docker.vmnetd` can remain after killing Docker Desktop and usually does not occupy business ports.
+- New or touched `history.db` K-line access must go through `tdx/services/history_db.py`; see `memory/reference_history_db_repository.md`.
 
 ## Native EOD Sync Chain
 
