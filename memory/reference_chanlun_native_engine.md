@@ -22,6 +22,12 @@ Date: 2026-06-21
 | 趋势背驰 | `tdx/chanlun_swing/strict_trend_divergence.py` | `StrictTrendDivergence` |
 | 画图 | `tdx/tools/draw_chanlun_native.py` | native 笔 + 线段 + 中枢 + 走势类型 |
 
+`tdx/chanlun_swing/chanlun_native.py` 的
+`build_label_discipline_table(..., course_evidence_by_candidate=...)` 用于接入
+第 82-86 课这类外部课程证据,例如分型对应小级别中枢确认、最小中枢构造纪律、
+大小级别买卖点作用域、级别不能按时间升级。该参数只把已按信号时点截断的
+证据写入每行 `course_evidence`,不改变候选数量、严格结论或交易许可。
+
 ## 判定步骤
 
 1. 拉取对应级别 K 线。
