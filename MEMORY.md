@@ -8,6 +8,8 @@
 - [Stock analysis terminology](memory/reference_stock_analysis_terminology.md): 面向用户输出时把内部机器标签转成中文,包括 `trade_filter` -> `交易过滤` 以及缠论引擎状态词。
 - [TDX native runtime](memory/reference_tdx_native_runtime.md): TDX API、K-line dashboard、DuckDB 记录、回测和 EOD 链路默认原生运行;记录端口、启动、验证、Docker 冲突处理和 launchd 同步链。
 - [History DB repository](memory/reference_history_db_repository.md): `history.db` / K 线读写统一走 `tdx/services/history_db.py`;固化 WAL、busy_timeout、runtime_config 路径、标准表/索引、`as_of` 截断和严格 3B/3S 次级别自动拉取边界。
+- [Recursive Chanlun runtime](memory/reference_recursive_chanlun_runtime.md): 递归缠论盘中 / CLI 运行封装;`RecursiveChanlunEngine` 保持纯结构 proof,运行层用 `recursive_history` 和 `tools/recursive_chanlun.py` 读取 history/API 数据,`engine_strict` 不等于可交易。
+- [Recursive Chanlun CLI skill](skills/recursive-chanlun-cli/SKILL.md): 本项目专用 Codex / Claude Code skill;用于运行和解释 `tools/recursive_chanlun.py`,并约束 `strict_labels` 只代表结构 proof,不代表交易许可。
 - [CANSLIM A-share reference](memory/reference_canslim_a_share.md): CANSLIM A 股阈值、A/B/C/D 分类、M 仓位上限、early / 突破确认、I 四项评分和 T1/T2/T3 技术口径。
 - [Stock analyses DB](memory/reference_stock_analyses_db.md): 单票分析 DuckDB + Markdown 双写、7 日内历史结论对比、板块快照、低位启动扫描、EOD 记录和资金流表。
 - [TDX toolchain](memory/reference_tdx_toolchain.md): TDX 原生 API 调用顺序、EOD launchd 链、扫描脚本、记录工具和相关 reference 索引。

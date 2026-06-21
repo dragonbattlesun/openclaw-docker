@@ -37,6 +37,11 @@ media/
 ml/
 qqbot/
 skills/
+!skills/
+skills/*
+!skills/recursive-chanlun-cli/
+!skills/recursive-chanlun-cli/SKILL.md
+!skills/recursive-chanlun-cli.skill
 tasks/
 workspace/
 
