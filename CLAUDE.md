@@ -686,17 +686,14 @@ T 不通过可以否决题材叙事和弱技术机会。
 
 区别只在级别,不在规则。大级别的一笔 / 一段,内部可以由次级别完整走势类型递归生成;一个大级别中枢,内部也可能包含多个小级别中枢。
 
-实战强制口径:
+实战强制口径(6 条完整版见 `memory/reference_chanlun_recursive_buy_sell_framework.md`),核心:
 
-1. 先声明本次操作级别,再写观察级别和进场级别。
-2. 本级别买卖点只能由本级别结构定性;小级别只负责精确触发、背驰验证、回试验证和止损确认。
-3. 小级别信号不能直接替代大级别信号:`5m 底背驰 ≠ 30m 严格1B`;`30m 三买 ≠ 日线三买`;`小级别二买 ≠ 大级别三买`。
-4. 小转大必须按链条确认:小级别背驰候选 → 本级别反向笔 / 走势类型完成 → 本级别中枢形成 → 离开中枢 → 第一次回踩不回中枢。链条缺一步,只能写候选或观察。
-5. 禁止混级别画图:不能用 30m 的笔、5m 的回试、日线的中枢拼成一个买点;每个中枢必须说明由哪个级别的次级别走势构成。
-6. 输出必须分成 `本级别结论`、`次级别支持/反证`、`能否递归升级`、`升级触发位`、`升级失败位`。
+1. 先声明操作级别,再写观察级别和进场级别;本级别买卖点只能由本级别结构定性,小级别只负责触发 / 背驰 / 回试 / 止损确认。
+2. 小级别信号不能直接替代大级别(`5m 底背驰 ≠ 30m 严格1B`;`30m 三买 ≠ 日线三买`);小转大必须走链条:小级别背驰候选 → 本级别反向走势完成 → 中枢形成 → 离开 → 第一次回踩不回中枢,缺一步只能写候选。
+3. 禁止混级别拼买点;输出分 `本级别结论` / `次级别支持反证` / `能否升级` / `升级触发位` / `升级失败位`。
 
-✅ 正确:"30m 仍中枢震荡无严格 3B;5m 底背驰只支持 30m 下沿回补候选;待 30m 向上离开 ZG 且第一次回踩不回中枢才升级 30m 3B"。
-❌ 错误:"5m 底背驰→30m 一买成立";"30m 三买→日线三买";用日线高低点 + 30m 笔 + 5m 回踩拼一个中枢。
+✅ "30m 仍中枢震荡无严格 3B;5m 底背驰只支持 30m 下沿回补候选;待 30m 离开 ZG 且第一次回踩不回中枢才升级 30m 3B"。
+❌ "5m 底背驰→30m 一买成立";"30m 三买→日线三买";用日线高低点 + 30m 笔 + 5m 回踩拼一个中枢。
 
 #### 16.1.2 连续多日 + 多级别强制口径
 
@@ -714,32 +711,17 @@ T 不通过可以否决题材叙事和弱技术机会。
 4. 中枢力度 `ZD/ZG/Z`(比较同级别同方向的离开段/回试段/`Zn` 偏移,只作 evidence 不单独升级买卖点)。
 5. 自同构递归:本级别结论、次级别支持/反证、能否升级、触发位、失败位。
 
-### 16.2.5 缠论 12 名词速查(完整版见 memory: reference_chanlun_terminology.md)
+### 16.2.5 缠论 12 名词速查
 
-| 名词 | 一句话定义 | 实战口径 |
-|---|---|---|
-| **分型** | 顶/底分型 = K 线局部拐点 | 单分型不交易,只是拐点候选 |
-| **笔** | 顶/底分型之间的最小走势段 | 看是否还在一笔下跌或已开始向上一笔 |
-| **线段** | 多笔组成更大一级走势 | 笔看短线,线段看波段 |
-| **中枢** | 多段重叠出来的价格震荡区间 | 上沿突破=强 / 下沿跌破=弱 / 内震荡不重仓 |
-| **背驰** | 价创新高/低 + MACD 不同步 | 顶背驰=防卖,底背驰=可观察 |
-| **1B** | 本级别 a+A+b+B+c 下跌趋势背驰后的第一买点(结构完成后的左侧) | 只作左侧试错或观察,不当确认仓/趋势仓 |
-| **2B** | 1B 后回踩不创新低(右侧确认) | **early/medium 最佳位** ★ |
-| **3B** | 突破中枢回踩不破再向上 | 突破后回踩确认,strict 候选 |
-| **1S** | 上涨背驰后第一卖点 | 周线 1S 已成 = 不再按回调看 |
-| **2S** | 1S 后反弹不过前高 | 反弹失败,持仓减,弱股清 |
-| **3S** | 跌破中枢后反抽不过 | 不能再讲"等回本",逃命点 |
-| **级别** | 操作级别谁说了算 | **月/周定背景 + 日线定结构 + 60min/30min 定确认与触发** |
-| **区间套** | 大级别给方向,小级别找触发 | 多级共振才是真信号 |
-| **离开/返回** | 离开中枢后是否回来 | 不回=趋势延续 / 回=假突破 |
+完整 12 名词定义表 + 实战口径 + 5 句必背心法见 `memory/reference_chanlun_terminology.md`。
 
-5 句必背心法:
+最高频 5 句心法(其余查 reference):
 
 1. **周线 1S 已成,日线反弹也先当卖点**
 2. **月线不支持,日线买点只能小仓试错,不能重仓**
 3. **2B 比 1B 更适合实盘**(右侧确认 > 结构完成后的左侧试错)
 4. **3B 是趋势确认,不是抄底**
-5. **缠论信号不能推翻 M、止损、板块、业绩和资金**(对应 §4 数据冲突优先级第 6 项,缠论排在 5 项硬信号之后)
+5. **缠论信号不能推翻 M、止损、板块、业绩和资金**(对应 §4 裁决链第 6 项,缠论排在 5 项硬信号之后)
 
 ### 16.3 买卖点速查
 
@@ -1276,6 +1258,8 @@ python3 workspace/tools/record_eod.py [YYYY-MM-DD] [--market-state M]
 
 ## 26. 输出模板
 
+**5 个完整模板骨架(标准单票 26.2 / 持仓诊断 26.3 / 换仓 26.4 / 市场分析 26.5)见 `memory/reference_output_templates.md`。** 强制字段约束以 §2 五行结论 + §14.3 I 固定格式 + §29 自检清单为准。下面只内联最高频的快速决策版。
+
 ### 26.1 快速决策版
 
 适合用户问:"能买吗 / 要不要卖?"
@@ -1294,179 +1278,6 @@ python3 workspace/tools/record_eod.py [YYYY-MM-DD] [--market-state M]
 3.
 
 不满足条件时:
-```
-
-### 26.2 标准单票版
-
-```text
-【名称】
-【代码】
-类型:A 低位启动龙头 / B 突破确认龙头 / C 跟风补涨 / D 伪启动
-模式:A0 / A1 early / medium / strict / loose / 不达标
-结论:买 / 持 / 卖 / 不碰
-档位:
-核心逻辑:
-
-市场 M:
-- 状态:
-- 总仓位上限:
-- 是否允许新仓:
-
-板块判断:
-- 板块强度:
-- 是否主线:
-- 当前阶段:
-
-CANSLIM:
-- C:
-- A:
-- N:
-- S:
-- L:
-- I:
-- M:
-- T:
-
-资金面(I):综合评分 X/12
-- 主力资金:
-- 融资杠杆:
-- 龙虎榜:
-- 公募结构:
-
-技术结构(T):综合判定 🟢/🟡/🔴
-- T1 缠论(月/周/日 三级):
-- T2 K 线:
-- T3 量能:
-
-赔率:
-- 潜在收益:
-- 潜在亏损:
-- 收益风险比:
-
-执行细节:
-- 入场区间:
-- 止损位:
-- 目标位 T1 / T2:
-- 仓位建议:
-- 时间限制:
-
-兑现信号:
-1.
-2.
-
-证伪信号:
-1.
-2.
-
-若不买,替代方向:
-```
-
-### 26.3 持仓诊断版
-
-```text
-【持仓总览】
-- 总市值:
-- 浮盈亏:
-- 持仓数:
-- 当前总仓位判断:
-
-🔴 立即动作
-- 名称(代码)
-  - 处理优先级:
-  - 问题:
-  - 动作:
-  - 执行价位:
-
-🟡 有条件减仓
-- 名称(代码)
-  - 处理优先级:
-  - 触发条件:
-  - 动作:
-  - 观察位:
-
-🟢 可继续持有
-- 名称(代码)
-  - 处理优先级:
-  - 持有逻辑:
-  - 保护位:
-  - 失效条件:
-
-释放资金去向:
-- 保留现金:
-- 候选方向 1:
-- 候选方向 2:
-- 候选方向 3:
-```
-
-### 26.4 换仓版
-
-```text
-【换仓结论】
-- 是否换仓:
-- 旧仓:
-- 新仓:
-
-旧仓为什么该走:
-1.
-2.
-3.
-
-新仓为什么更优:
-1.
-2.
-3.
-
-换仓后风险变化:
-- 总风险:上升 / 下降 / 基本不变
-- 原因:
-
-执行动作:
-- 旧仓处理:
-- 新仓入场区间:
-- 新仓止损位:
-- 新仓仓位:
-```
-
-### 26.5 市场分析版
-
-```text
-【市场结论】
-- 市场状态:
-- 总仓位建议:
-- 是否允许开新仓:
-- 允许的档位:
-
-主线板块:
-1.
-2.
-3.
-
-回避板块:
-1.
-2.
-3.
-
-短期(1-2 周)
-剧本 A(X%)· 偏多
-- 触发条件:
-- 影响路径:
-- 应对动作:
-
-剧本 B(Y%)· 基准
-- 触发条件:
-- 影响路径:
-- 应对动作:
-
-剧本 C(Z%)· 风险
-- 触发条件:
-- 影响路径:
-- 应对动作:
-
-中期(1-3 月)
-...
-
-长期(3-6 月)
-...
 ```
 
 ---
@@ -1608,76 +1419,16 @@ CANSLIM:
 
 ## 33. 外部引用(memory + workspace)
 
-### 33.1 跨会话 reference 文件(memory/)
+**完整三张索引表(reference 文件清单 / feedback 教训清单 / workspace/tools 工具链)见 `memory/reference_external_index.md`。** 全局 auto-memory 的 MEMORY.md 索引了更全的 feedback 清单,与之互补。
 
-| 文件 | 引用位置 | 用途 |
-|---|---|---|
-| reference_chanlun_terminology.md | §16.2.5 | 缠论 12 类核心名词 + 实战翻译表 + 5 句心法完整版 |
-| reference_chanlun_108_core_rules.md | §16 / §35 | 缠论原文结构规则 + 连续多日多级别 SOP + 买卖点严格定性 |
-| reference_chanlun_center_strength.md | §16.2 / §16.4 | 中枢力度 evidence(级别/ZD/ZG/Z/MACD/量能/回试),禁单独升级买卖点 |
-| reference_chanlun_native_engine.md | §16.0.1 | 自研 chanlun_native 引擎组件、调用、画图、三方库禁用 |
-| reference_chanlun_recursive_buy_sell_framework.md | §35.6 | 递归买卖点 + 六类走势归档 + 固定操作级别 |
-| reference_a_share_execution_rules.md | §2 / §5.6 / §16.3.1 | A 股 T+1、做 T、试错仓、非主板风险、执行约束 |
-| reference_canslim_a_share.md | §0-§32 | CANSLIM A 股阈值、M 仓位、A/B/C/D、early、突破确认、I/T |
-| reference_stock_analysis_terminology.md | §36.1 | 用户可见术语中文化(交易过滤、缠论状态词) |
-| reference_tdx_native_runtime.md | §36 | TDX 原生运行、端口、验证、EOD、Docker 冲突 |
-| reference_history_db_repository.md | §36 | history.db repository、表/索引、as_of 截断、3B/3S 数据边界 |
-| reference_tdx_toolchain.md | §23 / §36 | TDX API 顺序、DuckDB、launchd、扫描/回测脚本索引 |
-| reference_chart_patterns.md | §20 | 30+ 经典 K 线形态完整列表 |
-| reference_canslim_perf.md | §7 | CANSLIM 性能数据参考 |
-| reference_tdxapi_defaults.md | §23.2 | TDX API 默认参数对照表 |
-| reference_stock_analyses_db.md | §23.4 | stock_analyses.duckdb 工具链详细说明 |
-| reference_sector_jump_v1.md | §13.3 | sector_jump_v1 板块跳升公式 + 完整修订策略 (-bi_low/-8% / +15%+25%+40% / 加仓 v2) |
-| reference_agent_note_writing_sop.md | §33.2 | 用户笔记 / 交易反馈 / 缠论纠错的标准整理格式 |
+高频入口速记(细节查上面索引或各 reference):
 
-### 33.2 跨会话 feedback 文件(memory/)
-
-| 文件 | 核心教训 |
-|---|---|
-| feedback_user_chart_is_truth.md | 用户提供图表为准,证伪时立刻撤回 |
-| feedback_position_must_use_250d.md | 位置判断必须用 250 日 HHV |
-| feedback_resonance_actual_chart_only.md | 共振判定只看实际 K 线 |
-| feedback_tech_combo_chanlun_kline_volume.md | 技术分析三件套(T1+T2+T3) |
-| feedback_three_system_resonance_sop.md | 形态/缠论/CANSLIM 三方共振 SOP |
-| feedback_external_mnemonic_audit.md | 外部口诀按"收编/警惕/不用"三档体检 |
-| feedback_api_params_strict.md | TDX API 参数严格按文档,不能猜 |
-| feedback_early_classification_multiwindow.md | A 类 early 必须三窗口位置 + 升势 ≤ 26 周校验 |
-| feedback_breakout_validity_check.md | 月线突破前高 3 项校验(对应 §13.0) |
-| feedback_position_class_abc.md | A/B/C 三类位置定义不能混淆(对应 §7.1) |
-| feedback_monthly_filter_only.md | A 类 early 月线只做否决器(对应 §12.3) |
-| feedback_early_essence_weekly.md | early 本体在周线 + A0/A1 分档 v4 终稿(对应 §12) |
-| feedback_global_gitignore_pitfall.md | ~/.gitignore_global 含 ".gitignore" 异常规则会屏蔽项目级 .gitignore(对应 §34.3.7) |
-| feedback_a_share_execution_constraints.md | A股约束让回测打 75% 折扣,单仓降 4%(§13.3) |
-| feedback_segmented_profit_taking.md | 分段止盈 +15/+25/+40% 比单一 +40% Sharpe +22%(§13.3) |
-| feedback_chanlun_engineering_label.md | 原文严格 1B/2B/3B 只定性,候选按 T+1 折扣给试错仓(§16.3.1) |
-| feedback_chanlun_chart_tool_and_levels.md | 画图首选 draw_chanlun_native.py 多级别叠加;§16.1.1 第5条禁拼买点非禁一图多级别 |
-
-### 33.3 工具链(workspace/tools/)
-
-| 工具 | 用途 |
-|---|---|
-| save_analysis.py | 单票分析双写到 DB + .md(§23.4) |
-| query_analysis.py | 9 个常用查询封装(§23.4 + §23.8 flow / flow-history) |
-| save_sector_verdicts.py | 板块判断快照入库 sector_verdicts(§23.5) |
-| ingest_lowstart.py | 低位启动扫描 json 批量入库(§23.6) |
-| save_sector_capital_flow.py | 板块资金流向(同花顺)入库 sector_capital_flow(§23.8) |
-| save_sw_money_flow.py | 申万一级行业资金流(东财个股聚合)入库 sector_money_flow_daily(§23.9) |
-| record_eod.py | 收盘一键:§23.5 + §23.6 + §23.8 + §23.9 |
-| schema.sql | DuckDB schema 定义(stock_analyses 40+ 字段 + sector_verdicts + sector_capital_flow + sector_money_flow_daily) |
-| scan_sector_jump_optimal.py | sector_jump_v1 实盘扫描, 输出含 A股 真实约束的完整交易计划 (§13.3) |
-| scan_dual_track.py | v1 严格 + v2 放宽 双轨扫描, S/A/B 三档分级 (§13.3) |
-| backtest_sector_jump_chanlun.py | 板块跳升 + 缠论结构层 14 月真实回测 (验证最优参数) |
-| backtest_a_share_realistic.py | 加 A股 真实约束 (T+1/涨跌停/滑点/手续费) 的回测器 |
-| scan_2560.py | 2560 战法 4 态扫描(诱多/冲量/做量/缩量),25日价均线+5/60日量线 + 纪律护栏 |
-| scan_low_start_v2.py | 低位启动 v2:板块底共振 + 启动时序三段(启动当周抓底),`--rebound` 含箱体回踩底 |
-| scan_earnings.py | 业绩硬门槛扫描(C+A:净利同比≥25%+扣非>0+ROE≥8),RPS 缩池;`--max-pos` 限位置 |
-| draw_chanlun_detail.py | 缠论详图:`czsc_adapter` 用 chanlun_native 引擎 + 走势中枢(state)+ 量能 + MACD。**默认前复权**(除权股才准),`--raw` 用本地不复权;`--period weekly/daily/60min/30min/5min` |
-
-> ⚠️ 以上 4 个工具在 `workspace/tools/`,按 .gitignore 约定不入父 repo,仅本地保留。
-
-### 33.4 备份文件
-
-- `CLAUDE_v1_20260426.md`:本次整理前的 v1 演化堆叠版,留存历史
+- **缠论权威**:`reference_chanlun_108_core_rules.md`(§16/§35)、`reference_chanlun_terminology.md`(§16.2.5)、`reference_chanlun_recursive_buy_sell_framework.md`(§16.1.1/§35.6)、`reference_chanlun_native_engine.md`(§16.0.1)。
+- **CANSLIM / A 股执行**:`reference_canslim_a_share.md`(§0-§32)、`reference_a_share_execution_rules.md`(§2/§5.6)。
+- **TDX / DB / 工具链**:`reference_tdx_native_runtime.md`(§36)、`reference_history_db_repository.md`、`reference_tdx_toolchain.md`(§23)、`reference_stock_analyses_db.md`(§23.4)。
+- **输出 / 术语**:`reference_output_templates.md`(§26)、`reference_stock_analysis_terminology.md`(§36.1)。
+- **每日记录工具**(workspace/tools/,不入 repo):`record_eod.py` 收盘一键(§23.7);`save_analysis.py` / `query_analysis.py`(§23.4);`scan_sector_jump_optimal.py`、`scan_dual_track.py`、`scan_earnings.py`、`scan_2560.py`、`draw_chanlun_detail.py`。
+- **备份**:`CLAUDE_v1_20260426.md`(整理前 v1 演化堆叠版)。
 
 ---
 
