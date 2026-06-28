@@ -1,6 +1,6 @@
 # 缠论 native 引擎使用规则
 
-Date: 2026-06-21
+Date: 2026-06-28
 
 ## 适用场景
 
@@ -17,6 +17,7 @@ Date: 2026-06-21
 | 组件 | 文件 | 作用 |
 |---|---|---|
 | 笔 / 分型 / 中枢 / 买卖点候选 | `tdx/chanlun_swing/chanlun_native.py` | `ChanlunAnalyzer` |
+| 中枢级别 / 走势结构规则 | `tdx/chanlun_swing/zhongshu_level.py` | 中枢关系、9 段延伸、a+A+b+B+c 结构门 |
 | 线段 | `tdx/chanlun_swing/line_segments.py` | `build_segment_list` |
 | 走势类型 | `tdx/chanlun_swing/trend_types.py` | `build_segment_zhongshu_list` / `classify_trend_type` |
 | 趋势背驰 | `tdx/chanlun_swing/strict_trend_divergence.py` | `StrictTrendDivergence` |
@@ -27,6 +28,13 @@ Date: 2026-06-21
 第 82-86 课这类外部课程证据,例如分型对应小级别中枢确认、最小中枢构造纪律、
 大小级别买卖点作用域、级别不能按时间升级。该参数只把已按信号时点截断的
 证据写入每行 `course_evidence`,不改变候选数量、严格结论或交易许可。
+
+`tdx/chanlun_swing/zhongshu_level.py` 的
+`build_center_extension_higher_level_candidates()` 用于把单中枢连续 9 段同级别
+延伸暴露为高一级中枢候选 evidence;它不拆分原中枢,也不说明本级别已形成趋势。
+`classify_ababc_bsp_structure()` 组合 B 段完成门和标准背驰结构门,只判断
+`a+A+b+B+c` 是否具备 `1B/1S` 结构候选前置;通过也不授予交易许可,不改变
+`find_candidates()` 输出。
 
 ## 判定步骤
 
