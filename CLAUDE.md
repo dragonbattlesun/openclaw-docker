@@ -463,7 +463,23 @@ M / 止损 / 板块 / 资金 / 业绩
 - 用 30m 三买直接说日线三买成立。
 - 混合日线高低点、30m 笔、5m 回踩拼买点。
 
-### 13.2 买卖点四档
+### 13.2 缠论引擎与候选纪律
+
+- 缠论结构一律用自研 `chanlun_native`，禁止 czsc / rs_czsc / 百分比 ZigZag。
+- 工具输出的 1B/2B/3B、`decision.action` 永远只是**候选**，不直接写"成立"、不直接面向用户报机器标签（如 `B1_candidate conf=0.55`），按四档用中文说。
+- 升到"真买点"必须**人工连续多日 + 多级别合笔复核**（日线 250 / 60min 80 / 30min 80，周月作背景）。
+- 权威定义以 `memory/reference_chanlun_108_core_rules.md` 为准（冲突时压过本节）。
+
+### 13.3 买卖点命门(原文严格定义)
+
+判"命门齐不齐"按下表，缺一即降档：
+
+- 1B：① 本级别下跌趋势 `a+A+b+B+c`（A/B 两同级别中枢，后 GG < 前 DD）；② C 段创新低后 MACD 同级别背驰；③ 反弹笔成立 + 绑定 C 段低点失效位。
+- 2B：① 1B 已成；② 次级别回踩（级别固定不临时切）；③ 回踩低点 > 1B 低；④ 不破最近中枢 ZD；右侧确认额外要收盘突破前高。
+- 3B：① 价从中枢内向 ZG 上方离开；② 离开后**第一次**次级别回试；③ 回试不破 ZG。三条缺一不可；非第一次回试 = 伪 3B(高位追涨)。
+- 1S/2S/3S：镜像判定。
+
+### 13.4 买卖点四档
 
 | 档位 | 含义 | 动作 |
 |---|---|---|
@@ -476,12 +492,13 @@ M / 止损 / 板块 / 资金 / 业绩
 
 3B ≈ 2B > 1B
 
-- 1B：左侧，只能 early / 试错。
-- 2B：右侧确认，适合 medium。
-- 3B：趋势确认，适合 strict。
-- 跌破买点笔低点，候选立即作废。
+- 1B：左侧（结构完成后的左侧），只能 early / 试错，不当确认/趋势仓。
+- 2B：右侧确认，适合 medium 5-10%。
+- 3B：趋势确认，适合 strict ≤15%。
+- 大级别否决优先：周线下跌笔未完时，60min/30min 的 2B/3B 只是逆大级别反弹，仓位再降一档；大级别已 3S 则小级别任何买点不成立。
+- 跌破买点笔低点，候选立即作废，不许用更大级别叙事安慰持有。
 
-### 13.3 K 线检查
+### 13.5 K 线检查
 
 必须检查：
 
@@ -495,7 +512,7 @@ T2 通过：
 
 多头 + 站稳关键位 + K 形态健康
 
-### 13.4 量能检查
+### 13.6 量能检查
 
 | 情况 | 结论 |
 |---|---|
@@ -664,11 +681,44 @@ query_analysis.py history {code}
 
 维持 / 修正 / 撤回
 
-单票分析后双写：
+单票分析后双写（DuckDB + .md）：
 
 python3 workspace/tools/save_analysis.py /tmp/xxx.json
 
 若工具不存在，不影响当前回答，但必须输出可复制的 Markdown 分析正文。
+
+### 19.1 收盘记录五类落库
+
+板块 RPS 排名 / 全市场扫描 / 资金流后必须落库，收盘用一键补全：
+
+python3 workspace/tools/record_eod.py [YYYY-MM-DD] [--market-state M]
+
+五类：① 单票双写 save_analysis ② 板块快照 save_sector_verdicts ③ 低位启动扫描 ingest_lowstart ④ 板块资金流(同花顺) save_sector_capital_flow ⑤ 申万行业资金流(东财) save_sw_money_flow。前置缺失自动跳过。launchd 链路 15:30 tdx-sync / 15:45 chanlun-low-start / 16:20 sector-rps / 16:35 record-eod。
+
+### 19.2 TDX 原生运行
+
+行情/缠论/扫描/回测/DuckDB/launchd 默认本机 .venv 原生跑，不依赖 Docker。Native TDX API `http://127.0.0.1:18800`；history.db `/Volumes/T7-APFS/DbWorkspace/history.db`；读写统一走 `tdx/services/history_db.py`。
+
+---
+
+## 19A. 外部权威 reference(memory/)
+
+冲突时 reference 压过本文件旧段落(§1)。完整索引见 `memory/reference_external_index.md`，高频入口：
+
+- 缠论：`reference_chanlun_108_core_rules.md`(原文结构+连续多日多级别SOP+买卖点严格定性)、`reference_chanlun_terminology.md`、`reference_chanlun_native_engine.md`、`reference_chanlun_recursive_buy_sell_framework.md`。
+- CANSLIM/执行：`reference_canslim_a_share.md`、`reference_a_share_execution_rules.md`(T+1/做T/试错仓/非主板)。
+- 数据/工具：`reference_tdx_native_runtime.md`、`reference_history_db_repository.md`、`reference_tdx_toolchain.md`、`reference_stock_analyses_db.md`。
+- 输出/术语：`reference_output_templates.md`、`reference_stock_analysis_terminology.md`。
+
+数据缺失、位置三窗口、突破校验反例、持仓量化评分等细则在对应 reference / feedback，需要时主动召回，不编造。
+
+---
+
+## 19B. 代码工作流(非交易任务)
+
+双 repo：父 repo `/Volumes/T7/Docker/openclaw-docker`(CLAUDE.md / compose / .gitignore)+ tdx submodule `tdx/`(量化框架)。两者均 main 分支。
+
+常驻提交授权：修改完成且本地验证通过后**立即** commit + push，无需再确认。改 `tdx/` 下文件须先在 tdx/ commit+push，**再回父 repo bump submodule 指针**。commit message 说动机；禁 force push；冲突 `git pull --rebase`，有冲突停下问；initial commit 前 `git check-ignore -v` 验证未被全局 gitignore 屏蔽。
 
 ---
 
