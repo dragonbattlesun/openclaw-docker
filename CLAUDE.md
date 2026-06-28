@@ -1104,20 +1104,17 @@ T2 通过:
 
 **每次单票分析完成后,必须双写**:DuckDB raw_analysis_text 字段(SQL 查询用)+ Markdown 文件(人眼浏览/git 用)。
 
-**调用方式**:
+**调用方式**(JSON 写文件再调,避免 shell 转义):
 
 ```bash
-# 推荐:JSON 写文件再调(避免 shell 转义)
-python3 /Volumes/T7/Docker/openclaw-docker/workspace/tools/save_analysis.py /tmp/aaa.json
+python3 workspace/tools/save_analysis.py /tmp/aaa.json
 ```
 
-**必填 4 字段**:`code` / `analysis_date` / `verdict`(买/持/卖/不碰/watchlist) / **`raw_analysis_text`**(完整 §26.2 模板正文)
+**必填 4 字段**:`code` / `analysis_date` / `verdict`(买/持/卖/不碰/watchlist) / **`raw_analysis_text`**(完整 §26.2 模板正文)。
 
-**强烈建议补全**:`name` / `tier` / `core_logic` / CANSLIM 七维 pass+note / I 综合 + 四细分 / T1 三级状态 / 位置三窗口(pos_d250/pos_w240/weeks_from_low) / 赔率(entry/stop/T1/T2/rr_ratio) / Narrative 四问 / 业绩快照 / `signals[]`(兑现+证伪)
+**强烈建议补全**:`name` / `tier` / `core_logic` / CANSLIM 七维 pass+note / I 综合 + 四细分 / T1 三级状态 / 位置三窗口(pos_d250/pos_w240/weeks_from_low) / 赔率(entry/stop/T1/T2/rr_ratio) / Narrative 四问 / 业绩快照 / `signals[]`(兑现+证伪)。完整字段对照见 `workspace/tools/schema.sql`(40+ 字段)。
 
-完整字段对照见 `/Volumes/T7/Docker/openclaw-docker/workspace/tools/schema.sql`(40+ 字段)。
-
-**分析前先查历史**:同一只票若 7 日内有过分析,先 `python3 query_analysis.py history {code}`,本轮在正文里**显式说明「维持/修正/撤回」**+ 给变化原因。
+**分析前先查历史**:同一只票若 7 日内有过分析,先 `query_analysis.py history {code}`,本轮在正文里**显式说明「维持/修正/撤回」**+ 给变化原因。
 
 **触发回填**:用户告知 watchlist 已触发或事后扫到触发,在 JSON `outcome` 字段写入 trigger_outcomes 子表(triggered/trigger_date/exit_reason 等)。
 
@@ -1134,7 +1131,7 @@ python3 /Volumes/T7/Docker/openclaw-docker/workspace/tools/save_analysis.py /tmp
 **只要输出了申万一级板块 RPS 排名 / 板块强弱判断,必须落库**,用于判断回归:
 
 ```bash
-python3 /Volumes/T7/Docker/openclaw-docker/workspace/tools/save_sector_verdicts.py <YYYY-MM-DD> [--market-state <M>]
+python3 workspace/tools/save_sector_verdicts.py <YYYY-MM-DD> [--market-state <M>]
 ```
 
 - 写入 `stock_analyses.duckdb` 的 `sector_verdicts` 表(31 行业 × label,同日重跑覆盖)
@@ -1146,7 +1143,7 @@ python3 /Volumes/T7/Docker/openclaw-docker/workspace/tools/save_sector_verdicts.
 **只要跑了 `chanlun_low_start_v04_1.py` 全市场扫描,必须批量入库**:
 
 ```bash
-python3 /Volumes/T7/Docker/openclaw-docker/workspace/tools/ingest_lowstart.py --latest
+python3 workspace/tools/ingest_lowstart.py --latest
 ```
 
 - 把 structure_candidates(trade + watchlist)批量写入 `stock_analyses`,
@@ -1156,33 +1153,13 @@ python3 /Volumes/T7/Docker/openclaw-docker/workspace/tools/ingest_lowstart.py --
 
 ### 23.7 收盘一键记录 + 自动化
 
-手动一键(§23.5 + §23.6 合并,前置缺失自带跳过):
+手动一键(§23.5 + §23.6 合并,前置缺失自带跳过;省略日期 = history.db 最近交易日):
 
 ```bash
-python3 /Volumes/T7/Docker/openclaw-docker/workspace/tools/record_eod.py [YYYY-MM-DD] [--market-state M]
-# 省略日期 = history.db 最近交易日
+python3 workspace/tools/record_eod.py [YYYY-MM-DD] [--market-state M]
 ```
 
-**自动化(原生 launchd,不用 Docker)**:`record_eod.py` 依赖前置同日就绪——
-sw_rps(`com.openclaw.sector-rps` 16:20 原生生成)+
-chanlun_low_start scan json(`com.openclaw.chanlun-low-start` 15:45 原生生成)。
-当前标准收盘链路:
-
-| 时间 | launchd | 原生命令 |
-|------|---------|----------|
-| 15:30 | `com.openclaw.tdx-sync` | `tdx/.venv/bin/python -u tdx/sync_tdx_meta.py` |
-| 15:45 | `com.openclaw.chanlun-low-start` | `tdx/.venv/bin/python tdx/run_v042_pipeline.py` |
-| 16:20 | `com.openclaw.sector-rps` | `tdx/.venv/bin/python tdx/scripts/run_sector_rps_daily.py --db tdx/rps.db --history-db tdx/history.db` |
-| 16:35 | `com.openclaw.record-eod` | `tdx/.venv/bin/python workspace/tools/record_eod.py` |
-
-手动补跑:
-
-```bash
-cd /Volumes/T7/Docker/openclaw-docker
-tdx/.venv/bin/python workspace/tools/record_eod.py [YYYY-MM-DD] [--market-state M]
-```
-
-如前置缺失,`record_eod.py` 会跳过对应步骤并继续;不要再把收盘记录链挂回 Docker scheduler。
+**自动化(原生 launchd,不用 Docker)**:`record_eod.py` 依赖前置同日就绪(sw_rps + chanlun_low_start scan json),标准收盘链路 4 个 launchd 任务见 §36 原生 EOD 链路表。如前置缺失,`record_eod.py` 会跳过对应步骤并继续;不要再把收盘记录链挂回 Docker scheduler。
 
 一句话:**单票分析双写(§23.4)+ 板块排名落 sector_verdicts(§23.5)+ 低位启动扫描批量入库(§23.6)+ 板块资金流向(同花顺)落 sector_capital_flow(§23.8)+ 申万行业资金流(东财聚合)落 sector_money_flow_daily(§23.9),五类齐全才算"做了记录";收盘用 record_eod.py 一键补全(§23.7)。**
 
@@ -1191,13 +1168,11 @@ tdx/.venv/bin/python workspace/tools/record_eod.py [YYYY-MM-DD] [--market-state 
 每日盘后必须把**板块资金流向**入库,与 §23.5 板块 RPS 是双视角(rps=价格相对强度;capital_flow=主力净流入金额)。
 
 ```bash
-.venv/bin/python /Volumes/T7/Docker/openclaw-docker/workspace/tools/save_sector_capital_flow.py [YYYY-MM-DD]
+.venv/bin/python workspace/tools/save_sector_capital_flow.py [YYYY-MM-DD]
 # 默认 = 今日(基于本机时区);record_eod.py 自动调用,无需单独跑
 ```
 
-**数据源**:同花顺即时接口(akshare `stock_fund_flow_industry`/`_concept`),走 host_fetch_relay 绕东财 push2 TLS 切断。**写入表**:`sector_capital_flow`(行业 90 行 + 概念 387 行,同日按 `(date,source,sector_type)` 覆盖)。**关键字段** `net_yi`(主力净额,正=流入,亿元)。
-
-**查询**:`query_analysis.py flow [日期]`(top10 流入/流出)、`flow-history 行业 半导体 30`(单板块轨迹)。
+**数据源**:同花顺即时接口(akshare `stock_fund_flow_industry`/`_concept`),走 host_fetch_relay 绕东财 push2 TLS 切断。**写入表** `sector_capital_flow`(同日按 `(date,source,sector_type)` 覆盖),关键字段 `net_yi`(主力净额,正=流入,亿元)。**查询** `query_analysis.py flow [日期]` / `flow-history 行业 半导体 30`。
 
 **用途**:§4 裁决链第 4 级「机构与资金趋势」客观证据;标签校验(连续 3 天净流出 > 50 亿 = 派发期 / +20 亿 = 资金承认底部启动);与 §23.5 联合查 rps 与资金背离(rps5 高 + 流出 = 反抽假启动;rps5 低 + 流入 = 真底部启动)。完整字段见 `reference_tdx_toolchain.md`。
 
@@ -1211,9 +1186,7 @@ tdx/.venv/bin/python workspace/tools/record_eod.py [YYYY-MM-DD] [--market-state 
 # 默认 = money_flow_daily MAX(date);record_eod.py 自动调用
 ```
 
-**数据源**:`tdx/rps.db` 的 `money_flow_daily`(东财 5000+ 个股逐笔)× `sw_stock_industry`(申万一级 31 行业映射)。**写入表**:`sector_money_flow_daily`(31 行 × N 日,同日覆盖),关键字段 `main_net`(单位元)。
-
-**查询**:`query_analysis.py sw-flow [日期]` / `sw-flow-history 电子 30`(轨迹+累计)/ `sw-flow-rank 20`(N 日累计排名)。
+**数据源**:`tdx/rps.db` 的 `money_flow_daily`(东财 5000+ 个股逐笔)× `sw_stock_industry`(申万一级 31 行业映射)。**写入表** `sector_money_flow_daily`(同日覆盖),关键字段 `main_net`(单位元)。**查询** `query_analysis.py sw-flow [日期]` / `sw-flow-history 电子 30` / `sw-flow-rank 20`。
 
 **用途**(§23.8 不能做的):趋势观察(N 日累计)、§22 换仓行业资金对比、L 维度长牛主线锁定(60 日累计前 3)。**口径警告**:main_net 单位是元,与同花顺快照(亿元)**不能直接相减**;只信排名和方向,数值仅横向对比。
 
