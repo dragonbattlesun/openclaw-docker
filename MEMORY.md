@@ -11,6 +11,7 @@
 - [Recursive Chanlun runtime](memory/reference_recursive_chanlun_runtime.md): 递归缠论盘中 / CLI 运行封装;`RecursiveChanlunEngine` 保持纯结构 proof,运行层用 `recursive_history` 和 `tools/recursive_chanlun.py` 读取 history/API 数据,`engine_strict` 不等于可交易。
 - [Recursive Chanlun CLI skill](skills/recursive-chanlun-cli/SKILL.md): 本项目专用 Codex / Claude Code skill;用于运行和解释 `tools/recursive_chanlun.py`,并约束 `strict_labels` 只代表结构 proof,不代表交易许可。
 - [CANSLIM A-share reference](memory/reference_canslim_a_share.md): CANSLIM A 股阈值、A/B/C/D 分类、M 仓位上限、early / 突破确认、I 四项评分和 T1/T2/T3 技术口径。
+- [Classic chart patterns](memory/reference_chart_patterns.md): 基于本地《股票形态分析理论图文版》PDF 整理的经典图表形态 SOP;形态只作为缠论结构后的 T 维度 evidence,不能替代中枢、走势类型、背驰和三类买卖点确认。
 - [Stock analyses DB](memory/reference_stock_analyses_db.md): 单票分析 DuckDB + Markdown 双写、7 日内历史结论对比、板块快照、低位启动扫描、EOD 记录和资金流表。
 - [TDX toolchain](memory/reference_tdx_toolchain.md): TDX 原生 API 调用顺序、EOD launchd 链、扫描脚本、记录工具和相关 reference 索引。
 - [Agent note writing SOP](memory/reference_agent_note_writing_sop.md): 用户要求整理笔记、写进规则或沉淀交易教训时,统一按适用场景、定义、步骤、输出、正反例、优先级和案例整理;缠论笔记必须补齐级别、笔、线段、中枢、MACD、量能、T+1 和失效位。
