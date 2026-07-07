@@ -711,7 +711,9 @@ python3 workspace/tools/save_analysis.py /tmp/xxx.json
 
 python3 workspace/tools/record_eod.py [YYYY-MM-DD] [--market-state M]
 
-五类：① 单票双写 save_analysis ② 板块快照 save_sector_verdicts ③ 低位启动扫描 ingest_lowstart ④ 板块资金流(同花顺) save_sector_capital_flow ⑤ 申万行业资金流(东财) save_sw_money_flow。前置缺失自动跳过。launchd 链路 15:30 tdx-sync / 15:45 chanlun-low-start / 16:20 sector-rps / 16:35 record-eod。
+六类：① 单票双写 save_analysis ② 板块快照 save_sector_verdicts ③ 低位启动扫描 ingest_lowstart ④ 板块资金流(同花顺) save_sector_capital_flow ⑤ 申万行业资金流聚合 save_sw_money_flow ⑥ 板块主力强度 save_industry_fund_flow(东财→新浪兜底,§23.11)。前置缺失自动跳过。launchd 链路 15:30 tdx-sync / 15:45 chanlun-low-start / 16:20 sector-rps / 16:35 record-eod。
+
+⚠️ 东财 WAF：`stock_individual_fund_flow_rank`(个股全市场排行)+ `stock_sector_fund_flow_rank`(板块排行)两个 push2 clist/get 接口对 pz=100 完整参数请求**掐连接**(RemoteDisconnected,requests/curl_cffi 均失效,curl 简单请求偶通)。这使 `money_flow_daily` 饿死 → ④(同花顺)/⑤/⑥老链(依赖 money_flow_daily 聚合的 save_main_strength §23.10)一并空转。板块主力强度改走 `services.market.industry_fund_flow`(东财失败回落新浪 `stock_fund_flow_industry`,净额=流入-流出),见 [[feedback_eastmoney_waf_sina_fallback]]。接口是**实时快照**,收盘 16:35 跑到的是近收盘值。
 
 ### 19.2 TDX 原生运行
 
