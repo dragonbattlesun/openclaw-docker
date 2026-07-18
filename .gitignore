@@ -19,6 +19,9 @@ update-check.json
 .codex/
 .cursor/
 
+# Codex / agent 隔离开发工作区
+.worktrees/
+
 # ===========================
 # 其他子项目(各有独立用途,本 repo 不管理)
 # ===========================
