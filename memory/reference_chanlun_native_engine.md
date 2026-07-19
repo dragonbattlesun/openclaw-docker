@@ -40,7 +40,7 @@ Date: 2026-06-28
 
 1. 拉取对应级别 K 线。
 2. 转为 `RawBar(dt, open, high, low, close, vol)`。
-3. 用 `ChanlunAnalyzer(bars, level=...)` 生成笔和严格中枢。
+3. 用 `ChanlunAnalyzer(bars, level=...)` 生成笔、严格中枢、线段、走势类型。
 4. 用线段、走势类型、趋势背驰模块补齐递归结构。
 5. 工具候选只作候选;真买点必须连续多日、多级别、人工合笔复核。
 6. `is_complete` 过滤未完成笔;未完成笔不能定性严格买卖点。
@@ -60,7 +60,27 @@ ana = ChanlunAnalyzer(bars, level="daily")
 
 bis = ana.bi_list
 zss = ana.zhongshu_list_strict
+segments = ana.segment_list
+segment_zss = ana.segment_zhongshu_list
+trend = ana.trend_type
 ```
+
+## ChanlunAnalyzer 字段
+
+| 属性/方法 | 说明 |
+|---|---|
+| `newbars` / `fx_list` / `bi_list` | 包含关系、分型、严格笔 |
+| `zhongshu_list` / `zhongshu_list_all` / `zhongshu_list_strict` | 笔级中枢 |
+| `segment_list` | 线段列表(基于严格笔) |
+| `segment_zhongshu_list` | 线段级中枢 |
+| `trend_type` | 线段级走势类型(no_center/consolidation/trend/...) |
+| `get_segment_snapshot()` | 线段级结构摘要字典 |
+| `get_candidates()` | 候选买卖点(自动带入线段级 evidence) |
+| `snapshot()` | 笔级+线段级综合摘要 |
+
+## 中枢 gg/dd 口径
+
+`Zhongshu.gg/dd` 只反映中枢核心构成笔的外部波动边界。`leaving_up` / `leaving_down` / 横跨笔虽参与中枢状态判断,但其趋势段极值不并入 `gg/dd`,避免把后续 `后GG<前DD` / `后DD>前GG` 的趋势关系误判为级别扩张。
 
 ## 输出要求
 
