@@ -117,6 +117,42 @@ direct_child proof 已确认 daily->30min 和 30min->5min。
 - `engine_strict` 也只是结构成立。
 - 交易动作还需要持仓、位置、止损、赔率、T+1 和市场过滤。
 
+## proof 验证加固（2026-07-18 ~ 2026-07-21）
+
+以下 7 项合入为 `recursive_proof_validation.py` 和 `recursive_engine.py` 的纵深防御加固：
+
+### 1. 递归谱系验证（`_validate_second_refs` / `_validate_first_refs`）
+
+- 二买/二卖 proof 不再只检查 `prior_first_bsp_proof_id` 指向已确认 proof，而是**递归验证**该 first_bsp proof 的完整谱系（含 subdrill proof 链），通过 `_visited` frozenset 防止环引用。
+- 一买/一卖 proof 同样递归验证 subdrill proof 的子级别谱系。
+- 任何一环断裂 → `proof_ref_dangling`，整个 proof 链降级。
+
+### 2. 三买/三卖 proof 中枢几何校验
+
+`_validate_third_refs` 验证 `ConfirmedCenter` 的 ZD/ZG/DD/GG/start_dt/end_dt/confirmed_at 必须与子级别 completed trend units 派生值严格一致（`recursive_proof_validation.py:348-358`）。防止缓存或序列化导致 geometry 偏移。
+
+### 3. 子级别单位连续邻接校验
+
+- 三买/三卖：中枢子单位必须连续排列，leaving unit 紧随中枢尾，retest unit 紧随 leaving，且每对相邻单位通过 `units_are_structurally_adjacent` 校验。
+- 二买/二卖：5 个 scoped sublevel units 必须连续排列且方向交替正确。
+
+### 4. 二买/二卖方向序列强制
+
+`_validate_second_refs` 验证 5 个单位的精确方向序列：`2B` → `(Down, Up, Down, Up, Down)`，`2S` → `(Up, Down, Up, Down, Up)`。
+
+### 5. 子级别历史覆盖检查
+
+`_child_coverage_status()` 在结构层、direct_child_proof、first_bsp_proof、second_bsp_proof、third_bsp_proof 五个决策点检查子级别 K 线覆盖范围是否包容父级别所需区间。不满足 → `insufficient_history_window`。
+
+### 6. 候选时间绑定
+
+- first_bsp proof 的 `child_end_dt` 必须等于 subdrill proof 的 `candidate_end_dt`，且两者 ≤ 父候选 `candidate_end_dt`。
+- third_bsp proof 的 `retest.completed_at` 必须等于 `candidate_end_dt`。
+
+### 7. WAL 快照隔离
+
+`connect_history_readonly` 以 immutable WAL snapshot 模式打开 SQLite，防止扫描器并发写入导致递归引擎读到不完整数据（`history_db.py`, `60a17db`）。
+
 ## 优先级
 
 - 本规则优先于临时脚本里手写 SQLite / HTTP 拉 K 线的做法。
